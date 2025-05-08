@@ -2,6 +2,8 @@
 
 A sophisticated AI agent built with LangGraph that combines financial advisory capabilities with personalized user profiling. The agent uses a state-based graph architecture to manage conversations and provide tailored financial advice.
 
+![Architecture Diagram](static/architecture.png)
+
 ## Features
 
 - **Interactive Profile Building**: Dynamically builds user profiles through natural conversation
@@ -24,71 +26,15 @@ git clone https://github.com/yourusername/vibe-trader-agent.git
 cd vibe-trader-agent
 ```
 
-3. Setup Env and install Dependencies
+2. Setup Env and install Dependencies
 ```bash
-./taskfile setup_venv
+./taskfile.sh setup_venv
 ```
 
-4. Set up your environment variables:
+3. Run application locally
 ```bash
-cp .env.example .env
-# Edit .env with your API keys and configuration
+./taskfile.sh run
 ```
-
-## Project Structure
-
-```
-vibe-trader-agent/
-├── src/
-│   └── vibe_trader_agent/
-│       ├── graph.py          # Main graph definition
-│       ├── nodes.py          # Node implementations
-│       ├── state.py          # State management
-│       ├── tools.py          # Tool definitions
-│       └── configuration.py  # Configuration settings
-├── tests/                    # Test suite
-├── static/                   # Static assets
-└── pyproject.toml           # Project configuration
-```
-
-## Usage
-
-The agent can be used as a Python package:
-
-```python
-from vibe_trader_agent.graph import graph
-
-# Initialize the agent
-agent = graph.compile()
-
-# Run the agent
-result = agent.invoke({"input": "Hello, I need financial advice"})
-```
-
-## Development
-
-1. Install development dependencies:
-```bash
-pip install -e ".[dev]"
-```
-
-2. Run tests:
-```bash
-pytest
-```
-
-3. Run linting:
-```bash
-ruff check .
-```
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
 
 ## License
 
