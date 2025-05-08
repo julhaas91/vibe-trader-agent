@@ -25,8 +25,18 @@ builder.add_node("tools", ToolNode(TOOLS))
 # Set the entrypoint as profile_builder
 # This means that this node is the first one called
 builder.add_edge(START, "profile_builder")
-builder.add_edge("profile_builder", "financial_advisor")
-builder.add_edge("financial_advisor", END)
+
+# Add conditional edge from profile_builder to financial_advisor
+def route_profile_builder(state: State) -> Literal["financial_advisor", "__end__"]:
+    """Route based on profile builder output."""
+    if state.next == "financial_advisor":
+        return "financial_advisor"
+    return "__end__"
+
+builder.add_conditional_edges(
+    "profile_builder",
+    route_profile_builder,
+)
 
 # Add a conditional edge to determine the next step after `call_model`
 builder.add_conditional_edges(

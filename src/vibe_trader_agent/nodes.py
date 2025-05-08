@@ -86,6 +86,9 @@ async def profile_builder(state: State) -> Dict[str, Any]:
                 
                 if "target_amount" in extracted_data:
                     result["target_amount"] = extracted_data["target_amount"]
+                
+                # Add routing signal to hand off to financial advisor
+                result["next"] = "financial_advisor"
                                 
         except (json.JSONDecodeError, AttributeError) as e:
             # If JSON parsing fails, just continue without updating state

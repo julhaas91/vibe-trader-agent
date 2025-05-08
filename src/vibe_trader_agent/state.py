@@ -53,6 +53,9 @@ class State(InputState):
     It is set to 'True' when the step count reaches recursion_limit - 1.
     """
     
+    next: Optional[str] = field(default=None)
+    """The next node to route to in the graph."""
+    
     improvement_requests: Optional[List[str]] = field(default=None)
     """List of improvement requests made by the user during profile building. Initialized as None."""
     
