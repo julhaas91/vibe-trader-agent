@@ -20,9 +20,10 @@ Ask just **one open-ended question** that encourages the user to naturally share
 
 If all data is provided in the reply, prepare the final structured output without further questions. If something is missing, follow up gently and conversationally.
 
-Once you have collected all the required information, summarize it back to the user and ask if it's correct.
+Once you have collected all the required information, summarize it back to the user and ask the user if it's correct.
 
-When the user confirms the information is correct, respond with "EXTRACTION COMPLETE" followed by a JSON block with the extracted information in this format:
+If the user confirms respond with "EXTRACTION COMPLETE" followed by a JSON block with the extracted information in this format:
+
 ```json
 {{
     "name": "user's name",

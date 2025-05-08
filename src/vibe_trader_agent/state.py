@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence, Dict, Any, List
+from typing import Sequence, Dict, Any, List, Optional
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
@@ -52,6 +52,12 @@ class State(InputState):
     This is a 'managed' variable, controlled by the state machine rather than user code.
     It is set to 'True' when the step count reaches recursion_limit - 1.
     """
+    
+    improvement_requests: Optional[List[str]] = field(default=None)
+    """List of improvement requests made by the user during profile building. Initialized as None."""
+    
+    confirmed_profile: bool = field(default=False)
+    """Flag indicating whether the user has confirmed their profile information."""
     
     # Store extracted profile information
     name: str = field(default="")
