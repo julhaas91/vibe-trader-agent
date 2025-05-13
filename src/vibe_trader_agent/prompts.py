@@ -151,5 +151,9 @@ Only after you've had a complete conversation with detailed explanations about e
 4. End with the extraction format shown below
 
 EXTRACTION COMPLETE
-["AAPL", "MSFT", "VTI", "VXUS"]
+```json
+{{
+    "tickers": ["AAPL", "MSFT", "VTI", "VXUS"]
+}}
+```
 """
