@@ -12,14 +12,20 @@ from langgraph.graph import StateGraph, START, END
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.state import InputState, State
 from vibe_trader_agent.tools import TOOLS
-from vibe_trader_agent.nodes import profile_builder, financial_advisor, route_model_output
+from vibe_trader_agent.nodes import (
+    profile_builder, 
+    financial_advisor, 
+    route_model_output, 
+    views_analyst,
+)
 
 # Define a new graph
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
 # Define the nodes we will use
-builder.add_node(profile_builder, "profile_builder")
-builder.add_node(financial_advisor, "financial_advisor")
+builder.add_node("profile_builder", profile_builder)
+builder.add_node("financial_advisor", financial_advisor)
+builder.add_node("views_analyst", views_analyst)
 builder.add_node("tools", ToolNode(TOOLS))
 
 # Set the entrypoint as profile_builder
@@ -38,6 +44,8 @@ builder.add_conditional_edges(
     route_profile_builder,
 )
 
+# TODO - add route_asset_universe to direct flow to views agent once asset finder defined (!)
+
 # Add a conditional edge to determine the next step after `call_model`
 builder.add_conditional_edges(
     "financial_advisor",
@@ -46,9 +54,15 @@ builder.add_conditional_edges(
     route_model_output,
 )
 
+builder.add_conditional_edges(
+    "views_analyst",
+    route_model_output,
+)
+
 # Add a normal edge from `tools` to `call_model`
 # This creates a cycle: after using tools, we always return to the model
 builder.add_edge("tools", "financial_advisor")
+builder.add_edge("tools", "views_analyst")
 
 # Compile the builder into an executable graph
 graph = builder.compile(name="Vibe Trader Agent")
