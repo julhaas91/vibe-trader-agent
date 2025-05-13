@@ -119,6 +119,23 @@ class State(InputState):
     - description: str - Detailed description of the preference
     """
 
+    # tickers: List[str] = field(default_factory=lambda: ["IBM", "ETH"])#, "QQQ"])
+    tickers: str = field(default="IBM, ETH")
+    # TODO - Change hard-coded values once to be dynamic and populated by the asset finder agent
+    """
+    List of tickers a user is interested in based on preferences and constraints.
+    """
+
+    views_created: Dict[str, Any] = field(default_factory=dict)
+    """
+    Dict of views (`v`) data structures per assets (`k`) for the Black-Litterman model.
+    Contains:
+    - p_matrix: List[List[int]] - Views matrix (v×k): Each row represents one view.
+    - q_vector: List[float] - Expected returns (v×1) for each view.
+    - sigma_matrix: List[List[Union[int, float]]] - Diagonal matrix (v×v)of view uncertainty.
+    - explanation: str - Brief explanation of the generated views.
+    """
+
     # Additional attributes can be added here as needed.
     # Common examples include:
     # retrieved_documents: List[Document] = field(default_factory=list)
