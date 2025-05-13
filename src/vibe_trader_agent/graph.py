@@ -12,7 +12,7 @@ from langgraph.graph import StateGraph, START, END
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.state import InputState, State
 from vibe_trader_agent.tools import TOOLS
-from vibe_trader_agent.nodes import profile_builder, financial_advisor, route_model_output
+from vibe_trader_agent.nodes import profile_builder, financial_advisor, route_model_output, world_discovery
 
 # Define a new graph
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
@@ -20,6 +20,7 @@ builder = StateGraph(State, input=InputState, config_schema=Configuration)
 # Define the nodes we will use
 builder.add_node(profile_builder, "profile_builder")
 builder.add_node(financial_advisor, "financial_advisor")
+builder.add_node(world_discovery, "world_discovery")
 builder.add_node("tools", ToolNode(TOOLS))
 
 # Set the entrypoint as profile_builder
@@ -31,6 +32,8 @@ def route_profile_builder(state: State) -> Literal["financial_advisor", "__end__
     """Route based on profile builder output."""
     if state.next == "financial_advisor":
         return "financial_advisor"
+    elif state.next == "world_discovery":
+        return "world_discovery"
     return "__end__"
 
 builder.add_conditional_edges(
@@ -45,6 +48,11 @@ builder.add_conditional_edges(
     # based on the output from route_model_output
     route_model_output,
 )
+
+builder.add_conditional_edges(
+    "world_discovery",
+    )
+
 
 # Add a normal edge from `tools` to `call_model`
 # This creates a cycle: after using tools, we always return to the model
