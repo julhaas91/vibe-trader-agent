@@ -16,6 +16,9 @@ dependencies = [
     "langchain-fireworks>=0.1.7",
     "python-dotenv>=1.0.1",
     "langchain-tavily>=0.1",
+    "numpy>=2.2.5",
+    "pandas>=2.2.3",
+    "yfinance>=0.2.59",
 ]
 
 
