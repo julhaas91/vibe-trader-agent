@@ -153,7 +153,7 @@ Only after you've had a complete conversation with detailed explanations about e
 EXTRACTION COMPLETE
 ```json
 {{
-    "tickers": ["AAPL", "MSFT", "VTI", "VXUS"]
+    "tickers_world": ["AAPL", "MSFT", "VTI", "VXUS"]
 }}
 ```
 """

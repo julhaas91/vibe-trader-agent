@@ -213,8 +213,9 @@ async def world_discovery(state: State) -> Dict[str, Any]:
                 json_str = json_match.group(1)
                 extracted_data = json.loads(json_str)
 
-                if "tickers" in extracted_data:
-                    result["tickers"] = extracted_data["tickers"]
+                if "tickers_world" in extracted_data:
+                    result["tickers_world"] = extracted_data["tickers_world"]
+
         except (json.JSONDecodeError, AttributeError) as e:
             # If JSON parsing fails, just continue without updating state
             print(f"Failed to parse extraction data: {e}")

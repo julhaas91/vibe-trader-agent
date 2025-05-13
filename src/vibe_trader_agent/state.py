@@ -119,6 +119,9 @@ class State(InputState):
     - description: str - Detailed description of the preference
     """
 
+    tickers_world: List[str] = field(default_factory=list)
+    """List of tickers available to build a portfolio for."""
+
     # Additional attributes can be added here as needed.
     # Common examples include:
     # retrieved_documents: List[Document] = field(default_factory=list)
