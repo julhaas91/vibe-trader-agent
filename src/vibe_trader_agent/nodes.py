@@ -166,6 +166,9 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
                 
                 if "investment_preferences" in extracted_data and extracted_data["investment_preferences"]:
                     result["investment_preferences"] = extracted_data["investment_preferences"]
+
+                result["next"] = "world_discovery"
+
         except (json.JSONDecodeError, AttributeError) as e:
             # If JSON parsing fails, just continue without updating state
             print(f"Failed to parse extraction data: {e}")
