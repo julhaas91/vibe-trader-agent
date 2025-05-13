@@ -12,6 +12,7 @@ from langchain_core.tools import tool
 from langchain_tavily import TavilySearch  # type: ignore[import-not-found]
 
 from vibe_trader_agent.configuration import Configuration
+from vibe_trader_agent.finance_tools import calculate_financial_metrics
 
 
 @tool
@@ -48,5 +49,25 @@ async def lookup_financial_info(query: str) -> Optional[dict[str, Any]]:
     enhanced_query = f"financial information {query} ticker symbol stock market"
     wrapped = TavilySearch(max_results=configuration.max_search_results)
     return cast(dict[str, Any], await wrapped.ainvoke({"query": enhanced_query}))
-# Define the tools that will be available to the agent
-TOOLS = [search, lookup_financial_info]
+
+
+@tool
+async def search_market_data(query: str) -> Optional[dict[str, Any]]:
+    """Search financial markets, news, and company data using Tavily.
+    
+    Use this tool to find current market information, analyst forecasts,
+    earnings guidance, sector trends, and financial news for specific tickers.
+    """
+    configuration = Configuration.from_context()
+    wrapped = TavilySearch(max_results=configuration.max_search_results)
+    return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
+
+
+### Define the tools that will be available to the agent
+TOOLS = [
+    search, 
+    lookup_financial_info, 
+    search_market_data, 
+    calculate_financial_metrics
+]
+
