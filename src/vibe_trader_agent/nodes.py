@@ -5,14 +5,19 @@ import re
 from datetime import datetime, UTC
 from typing import Any, Dict, cast, Literal
 
-from langchain_core.messages import AIMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from vibe_trader_agent.tools import TOOLS
-
+from vibe_trader_agent.tools import TOOLS, search_market_data
+from vibe_trader_agent.finance_tools import calculate_financial_metrics
+from vibe_trader_agent.misc import get_current_date, extract_json
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.utils import load_chat_model
 from vibe_trader_agent.state import State
-from vibe_trader_agent.prompts import CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT
+from langchain_openai import ChatOpenAI
+from vibe_trader_agent.prompts import (
+    CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
+    VIEWS_ANALYST_SYSTEM_PROMPT,
+)
 
 async def profile_builder(state: State) -> Dict[str, Any]:
     """Call the LLM with the profile builder prompt to extract user profile information.
@@ -96,6 +101,7 @@ async def profile_builder(state: State) -> Dict[str, Any]:
             
     # Return the model's response and any extracted data
     return result
+
 
 async def financial_advisor(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
@@ -191,3 +197,78 @@ def route_model_output(state: State) -> Literal["__end__", "tools"]:
         return "__end__"
     # Otherwise we execute the requested actions
     return "tools"
+
+
+async def views_analyst(state: State) -> Dict[str, Any]:
+    """Call the LLM with the views analyst prompt to generate data structures for Black-Litterman model.
+
+    This function prepares the prompt using the VIEWS_ANALYST_SYSTEM_PROMPT,
+    initializes the reasoning model, and processes the response.
+    If the model's response contains data in JSON format, it will be parsed
+    and added to the state.
+
+    Args:
+        state (State): The current state of the conversation.
+
+    Returns:
+        dict: A dictionary containing the model's response message.
+    """
+
+    print("Views Analyst is cooking....")
+
+    # Create a reasoning model
+    reasoning = {
+        "effort": "medium",  # 'low', 'medium', or 'high'
+        "summary": None,     # 'detailed', 'auto', or None
+    }
+    model = ChatOpenAI(
+        model="o3-mini",
+        use_responses_api=True,
+        model_kwargs={"reasoning": reasoning}
+    )
+
+    # Initialize the model with tool binding
+    model = model.bind_tools([
+        search_market_data, 
+        calculate_financial_metrics,
+    ])
+
+    # Format the system prompt with current time
+    system_message = VIEWS_ANALYST_SYSTEM_PROMPT.format(
+        system_time=get_current_date()
+    )
+
+    # Get the model's response
+    response = cast(
+        AIMessage,
+        await model.ainvoke(
+            [
+                SystemMessage(content=system_message),
+                *state.messages
+                # HumanMessage(content=state.tickers),
+            ]
+        ),
+    )
+    # Note: Only works with `messages` (not State.tickers)
+
+    # Handle the case when it's the last step and the model still wants to use a tool
+    if state.is_last_step and response.tool_calls:
+        return {
+            "messages": [
+                AIMessage(
+                    id=response.id,
+                    content="Sorry, I could not find an answer to your question in the specified number of steps.",
+                )
+            ]
+        }
+
+    # Prepare the result with the response message
+    result = {"messages": [response]}
+    
+    # Check if the response contains the extraction completion marker
+    if isinstance(response.content, str) and "EXTRACTION COMPLETE".lower() in response.content.lower():        
+        extracted_data = extract_json(response.content)
+        result["views_created"] = extracted_data if extracted_data else {"error": "missing generated views"}
+        
+    return result
+
