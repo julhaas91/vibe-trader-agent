@@ -14,6 +14,7 @@ from vibe_trader_agent.nodes import (
     profile_builder,
     route_model_output,
     views_analyst,
+    world_discovery
 )
 from vibe_trader_agent.state import InputState, State
 from vibe_trader_agent.tools import TOOLS
@@ -24,6 +25,7 @@ builder = StateGraph(State, input=InputState, config_schema=Configuration)
 # Define the nodes we will use
 builder.add_node("profile_builder", profile_builder)
 builder.add_node("financial_advisor", financial_advisor)
+builder.add_node("world_discovery", world_discovery)
 builder.add_node("views_analyst", views_analyst)
 builder.add_node("tools", ToolNode(TOOLS))
 
@@ -43,14 +45,25 @@ builder.add_conditional_edges(
     route_profile_builder,
 )
 
-# TODO - add route_asset_universe to direct flow to views agent once asset finder defined (!)
+def route_financial_adviser(state: State) -> Literal["world_discovery", "__end__"]:
+    """Route based on financial adviser output."""
+    if state.next == "world_discovery":
+        return "world_discovery"
+    return "__end__"
 
-# Add a conditional edge to determine the next step after `call_model`
 builder.add_conditional_edges(
     "financial_advisor",
-    # After call_model finishes running, the next node(s) are scheduled
-    # based on the output from route_model_output
+    route_financial_adviser,
+)
+
+builder.add_conditional_edges(
+    "financial_advisor",
     route_model_output,
+)
+
+builder.add_conditional_edges(
+    "world_discovery",
+    route_model_output
 )
 
 builder.add_conditional_edges(
@@ -61,6 +74,7 @@ builder.add_conditional_edges(
 # Add a normal edge from `tools` to `call_model`
 # This creates a cycle: after using tools, we always return to the model
 builder.add_edge("tools", "financial_advisor")
+builder.add_edge("tools", "world_discovery")
 builder.add_edge("tools", "views_analyst")
 
 # Compile the builder into an executable graph

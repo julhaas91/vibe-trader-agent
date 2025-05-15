@@ -119,12 +119,8 @@ class State(InputState):
     - description: str - Detailed description of the preference
     """
 
-    # tickers: List[str] = field(default_factory=lambda: ["IBM", "ETH"])#, "QQQ"])
-    tickers: str = field(default="IBM, ETH")
-    # TODO - Change hard-coded values once to be dynamic and populated by the asset finder agent
-    """
-    List of tickers a user is interested in based on preferences and constraints.
-    """
+    tickers_world: List[str] = field(default_factory=list)
+    """List of tickers available to build a portfolio for."""
 
     views_created: Dict[str, Any] = field(default_factory=dict)
     """
