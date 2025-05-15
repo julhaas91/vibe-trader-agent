@@ -12,7 +12,11 @@ from vibe_trader_agent.tools import TOOLS
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.utils import load_chat_model
 from vibe_trader_agent.state import State
-from vibe_trader_agent.prompts import CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT
+from vibe_trader_agent.prompts import (
+    CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
+    WORLD_DISCOVERY_PROMPT
+    )
+
 
 async def profile_builder(state: State) -> Dict[str, Any]:
     """Call the LLM with the profile builder prompt to extract user profile information.
@@ -162,12 +166,65 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
                 
                 if "investment_preferences" in extracted_data and extracted_data["investment_preferences"]:
                     result["investment_preferences"] = extracted_data["investment_preferences"]
+
+                result["next"] = "world_discovery"
+
         except (json.JSONDecodeError, AttributeError) as e:
             # If JSON parsing fails, just continue without updating state
             print(f"Failed to parse extraction data: {e}")
             
     # Return the model's response and any extracted data
-    return result 
+    return result
+
+async def world_discovery(state: State) -> Dict[str, Any]:
+    """Call the LLM with the financial advisor prompt to extract investment preferences.
+
+        This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
+        initializes the model, and processes the response.
+        If the model's response contains extraction data in JSON format, it will be parsed
+        and added to the state.
+
+        Args:
+            state (State): The current state of the conversation.
+
+        Returns:
+            dict: A dictionary containing the model's response message and any extracted investment data.
+    """
+
+    configuration = Configuration.from_context()
+
+    model = load_chat_model(configuration.model).bind_tools(TOOLS)
+    system_message = WORLD_DISCOVERY_PROMPT.format(
+        system_time=datetime.now(tz=UTC).isoformat()
+        )
+
+    response = cast(
+        AIMessage,
+        await model.ainvoke(
+            [{"role": "system", "content": system_message}, *state.messages]
+        ),
+    )
+
+    result = {"messages": [response]}
+
+    if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
+        # Try to extract the JSON data
+        try:
+            # Find the JSON block between ```json and ```
+            json_match = re.search(r"```json\s*(.*?)\s*```", response.content, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(1)
+                extracted_data = json.loads(json_str)
+
+                if "tickers_world" in extracted_data:
+                    result["tickers_world"] = extracted_data["tickers_world"]
+
+        except (json.JSONDecodeError, AttributeError) as e:
+            # If JSON parsing fails, just continue without updating state
+            print(f"Failed to parse extraction data: {e}")
+
+    return result
+
 
 
 def route_model_output(state: State) -> Literal["__end__", "tools"]:
