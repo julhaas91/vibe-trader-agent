@@ -3,9 +3,10 @@
 import json
 import re
 from datetime import UTC, datetime
+from typing import Dict, Union, Any
 
 
-def get_current_date():
+def get_current_date() -> str:
     """Get the current date in UTC timezone.
     
     Returns:
@@ -14,7 +15,7 @@ def get_current_date():
     return datetime.now(UTC).strftime('%Y-%m-%d')
 
 
-def extract_json(text):
+def extract_json(text: str) -> Union[Dict[Any, Any], Any]:
     """Extract JSON data from a string."""
     try:
         # Look for JSON block between ```json and ```
@@ -29,7 +30,7 @@ def extract_json(text):
             json_str = json_match.group(0)
             return json.loads(json_str)
             
-        return None
+        return {}
     except Exception:
-        return None
+        return {}
     

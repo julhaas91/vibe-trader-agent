@@ -4,8 +4,8 @@ from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
 
 import numpy as np
-import pandas as pd
-import yfinance as yf
+import pandas as pd  # type: ignore
+import yfinance as yf  # type: ignore
 from langchain_core.tools import tool
 
 # Financial parameters
@@ -22,7 +22,7 @@ def get_stock_historical_data(
     window_type: str = 'days',
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
-) -> Dict[str, List[float]]:
+) -> Dict[str, Optional[List[float]]]:
     """Fetch historical closing prices data for multiple stock tickers.
     
     Args:
@@ -35,7 +35,7 @@ def get_stock_historical_data(
     Returns:
         Dict: Dictionary with tickers as keys and historical data as values
     """
-    result = {}
+    result: Dict[str, Optional[List[float]]] = {}
 
     if isinstance(time_window, str):
         time_window = int(time_window)
@@ -89,7 +89,7 @@ def calculate_financial_indicators(
     # Convert to pandas Series for easier calculations
     prices = pd.Series(closing_prices)
     
-    indicators = {}
+    indicators: Dict[str, Any] = {}
     
     try:
         # 1. Moving Averages
@@ -110,9 +110,9 @@ def calculate_financial_indicators(
         ema_26 = prices.ewm(span=26, adjust=False).mean()
         macd_line = ema_12 - ema_26
         signal_line = macd_line.ewm(span=9, adjust=False).mean()
-        indicators['MACD'] = float(macd_line.iloc[-1])
-        indicators['MACD_Signal'] = float(signal_line.iloc[-1])
-        indicators['MACD_Histogram'] = float((macd_line - signal_line).iloc[-1])
+        indicators['MACD'] = round(float(macd_line.iloc[-1]), 2)
+        indicators['MACD_Signal'] = round(float(signal_line.iloc[-1]), 2)
+        indicators['MACD_Histogram'] = round(float((macd_line - signal_line).iloc[-1]), 2)
         
         # 4. Bollinger Bands
         # sma_20 = prices.rolling(window=20).mean()
@@ -141,7 +141,10 @@ def calculate_financial_indicators(
         # 8. Statistical Measures
         indicators['Mean_Price'] = round(float(prices.mean()), 2)
         indicators['Std_Dev'] = round(float(prices.std()), 2)
-        indicators['Coefficient_Variation'] = round(float(indicators['Std_Dev'] / indicators['Mean_Price']), 2)
+
+        mean_price = float(indicators['Mean_Price'])
+        std_dev = float(indicators['Std_Dev'])
+        indicators['Coefficient_Variation'] = round(std_dev / mean_price, 2)
         
         # 9. Support and Resistance Levels
         rolling_max = prices.rolling(window=20).max()
@@ -159,8 +162,10 @@ def calculate_financial_indicators(
         indicators['Max_Drawdown'] = round(float(drawdown.min() * 100), 2)
         
         # 12. Golden/Death Cross Indicators
-        indicators['Golden_Cross'] = bool(indicators['SMA_20'] > indicators['SMA_50'])
-        indicators['Death_Cross'] = bool(indicators['SMA_20'] < indicators['SMA_50'])
+        sma_20 = float(indicators['SMA_20'])
+        sma_50 = float(indicators['SMA_50'])
+        indicators['Golden_Cross'] = bool(sma_20 > sma_50)
+        indicators['Death_Cross'] = bool(sma_20 < sma_50)
         
         # 13. Price Position - convert to float
         indicators['Price_vs_SMA20'] = round(float((prices.iloc[-1] - indicators['SMA_20']) / indicators['SMA_20'] * 100), 2)
@@ -189,7 +194,7 @@ def calculate_financial_indicators(
     return indicators
 
 
-def calculate_adx(prices: pd.Series, period: int = 14) -> float:
+def calculate_adx(prices: pd.Series, period: int = 14) -> Optional[float]:
     """Calculate Average Directional Index (ADX) for trend strength."""
     try:
         high = prices
@@ -201,7 +206,7 @@ def calculate_adx(prices: pd.Series, period: int = 14) -> float:
         # Convert to numeric to fix type issues
         plus_dm = pd.to_numeric(plus_dm, errors='coerce')
         minus_dm = pd.to_numeric(minus_dm, errors='coerce')
-        
+
         plus_dm[plus_dm < 0] = 0
         minus_dm[minus_dm > 0] = 0
         
@@ -214,40 +219,39 @@ def calculate_adx(prices: pd.Series, period: int = 14) -> float:
         dx = 100 * (abs(plus_di - minus_di) / (plus_di + minus_di))
         adx = dx.rolling(window=period).mean()
         
-        return adx.iloc[-1]
+        return float(adx.iloc[-1])
     except (IndexError, ZeroDivisionError, ValueError):
         return None
 
 
 @tool
-def calculate_financial_metrics(tickers: List[str]) -> Dict[str, Dict[str, Any]]:
+def calculate_financial_metrics(tickers: str) -> Dict[str, Dict[str, Any]]:
     """Calculate comprehensive financial indicators for given tickers.
     
     Returns key metrics including ratios, historical performance, and risk indicators for portfolio analysis.
 
     Args:
-        tickers (List[str]): List of ticker symbols
+        tickers (str): Comma-separated string of ticker symbols (e.g., "AAPL,GOOGL,MSFT")
     
     Returns:
-        Dict[str, Dict[str, float]]: Dictionary mapping each ticker to its financial indicators
+        Dict[str, Dict[str, Any]]: Dictionary mapping each ticker to its financial indicators
     """
+    # Parse the comma-separated string into a list
+    ticker_list = [ticker.strip() for ticker in tickers.split(',')]
     indicators_dict = {}
     
-    for ticker in tickers:
-
+    for ticker in ticker_list:
         closing_prices = get_stock_historical_data([ticker], time_window=TIME_WINDOW).get(ticker, [])
 
         if closing_prices:
             indicators_dict[ticker] = calculate_financial_indicators(closing_prices, ticker)
         else:
-            indicators_dict[ticker] = {'Error': 'No data available. Is {ticker} correct?'}
+            indicators_dict[ticker] = {'Error': f'No data available. Is {ticker} correct?'}
     
     return indicators_dict
 
 
 if __name__ == "__main__":
-    tickers = ['AAPL', 'PLTR']
-    data = get_stock_historical_data(tickers)
-
-    indicators = calculate_financial_metrics(tickers)    
-    
+    tickers = "AAPL,PLTR"
+    indicators = calculate_financial_metrics(tickers)
+    print(indicators)

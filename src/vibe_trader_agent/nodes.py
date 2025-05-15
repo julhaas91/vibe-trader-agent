@@ -54,7 +54,7 @@ async def profile_builder(state: State) -> Dict[str, Any]:
     )
 
     # Prepare the result with the response message
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
     
     # Check if the response contains the extraction completion marker
     if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
@@ -149,7 +149,7 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
         }
 
     # Prepare the result with the response message
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
     
     # Check if the response contains the extraction completion marker
     if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
@@ -208,7 +208,7 @@ async def world_discovery(state: State) -> Dict[str, Any]:
         ),
     )
 
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
 
     if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
         # Try to extract the JSON data
@@ -272,14 +272,14 @@ async def views_analyst(state: State) -> Dict[str, Any]:
         "effort": "medium",  # 'low', 'medium', or 'high'
         "summary": None,     # 'detailed', 'auto', or None
     }
-    model = ChatOpenAI(
+    reason_model = ChatOpenAI(
         model="o3-mini",
         use_responses_api=True,
         model_kwargs={"reasoning": reasoning}
     )
 
     # Initialize the model with tool binding
-    model = model.bind_tools([
+    model = reason_model.bind_tools([
         search_market_data, 
         calculate_financial_metrics,
     ])
@@ -314,7 +314,7 @@ async def views_analyst(state: State) -> Dict[str, Any]:
         }
 
     # Prepare the result with the response message
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
     
     # Check if the response contains the extraction completion marker
     if isinstance(response.content, str) and "EXTRACTION COMPLETE".lower() in response.content.lower():        

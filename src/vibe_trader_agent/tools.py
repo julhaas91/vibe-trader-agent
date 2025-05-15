@@ -9,7 +9,7 @@ consider implementing more robust and specialized tools tailored to your needs.
 from typing import Any, Optional, cast
 
 from langchain_core.tools import tool
-from langchain_tavily import TavilySearch  # type: ignore[import-not-found]
+from langchain_tavily import TavilySearch  # type: ignore[import-untyped]
 
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.finance_tools import calculate_financial_metrics

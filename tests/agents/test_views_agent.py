@@ -32,11 +32,11 @@ async def main():
 
     # Run the graph
     state = State()
-    state.messages = [HumanMessage(content="[SPY, BTC]")]
+    state.messages = [HumanMessage(content="[QQQ, ETH]")]
     response = await graph.ainvoke(state, {"recursion_limit": 10})
 
     last_msg = response['messages'][-1]
-    
+
     # Extract
     result = {}
     # Check if the response contains the extraction completion marker
