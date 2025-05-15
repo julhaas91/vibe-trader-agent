@@ -2,7 +2,6 @@
 
 import json
 import re
-from langchain_core.messages import AIMessage
 
 
 def test_json_extraction_regex():

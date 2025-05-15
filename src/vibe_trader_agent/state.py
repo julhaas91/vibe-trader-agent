@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Sequence, Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
@@ -121,6 +121,16 @@ class State(InputState):
 
     tickers_world: List[str] = field(default_factory=list)
     """List of tickers available to build a portfolio for."""
+
+    views_created: Dict[str, Any] = field(default_factory=dict)
+    """
+    Dict of views (`v`) data structures per assets (`k`) for the Black-Litterman model.
+    Contains:
+    - p_matrix: List[List[int]] - Views matrix (v×k): Each row represents one view.
+    - q_vector: List[float] - Expected returns (v×1) for each view.
+    - sigma_matrix: List[List[Union[int, float]]] - Diagonal matrix (v×v)of view uncertainty.
+    - explanation: str - Brief explanation of the generated views.
+    """
 
     # Additional attributes can be added here as needed.
     # Common examples include:
