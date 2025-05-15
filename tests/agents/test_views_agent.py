@@ -36,13 +36,7 @@ async def main():
     response = await graph.ainvoke(state, {"recursion_limit": 10})
 
     last_msg = response['messages'][-1]
-
-    print(type(last_msg))
-    print(last_msg)
-
-    print('#' * 50)
-    print(last_msg.content)
-
+    
     # Extract
     result = {}
     # Check if the response contains the extraction completion marker

@@ -14,7 +14,7 @@ from vibe_trader_agent.nodes import (
     profile_builder,
     route_model_output,
     views_analyst,
-    world_discovery
+    world_discovery,
 )
 from vibe_trader_agent.state import InputState, State
 from vibe_trader_agent.tools import TOOLS

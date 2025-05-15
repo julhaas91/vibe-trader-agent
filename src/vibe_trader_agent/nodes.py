@@ -19,7 +19,6 @@ from vibe_trader_agent.prompts import (
 from vibe_trader_agent.state import State
 from vibe_trader_agent.tools import TOOLS, search_market_data
 from vibe_trader_agent.utils import load_chat_model
-from vibe_trader_agent.state import State
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
@@ -174,7 +173,7 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
 
                 result["next"] = "world_discovery"
 
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
             pass
             
@@ -184,18 +183,17 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
 async def world_discovery(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
 
-        This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
-        initializes the model, and processes the response.
-        If the model's response contains extraction data in JSON format, it will be parsed
-        and added to the state.
+    This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
+    initializes the model, and processes the response.
+    If the model's response contains extraction data in JSON format, it will be parsed
+    and added to the state.
 
-        Args:
-            state (State): The current state of the conversation.
+    Args:
+        state (State): The current state of the conversation.
 
-        Returns:
-            dict: A dictionary containing the model's response message and any extracted investment data.
+    Returns:
+        dict: A dictionary containing the model's response message and any extracted investment data.
     """
-
     configuration = Configuration.from_context()
 
     model = load_chat_model(configuration.model).bind_tools(TOOLS)
@@ -224,9 +222,9 @@ async def world_discovery(state: State) -> Dict[str, Any]:
                 if "tickers_world" in extracted_data:
                     result["tickers_world"] = extracted_data["tickers_world"]
 
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
-            print(f"Failed to parse extraction data: {e}")
+            pass
 
     return result
 
