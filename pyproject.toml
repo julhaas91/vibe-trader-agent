@@ -67,4 +67,5 @@ convention = "google"
 dev = [
     "langgraph-cli[inmem]>=0.1.71",
     "pytest>=8.3.5",
+    "ruff==0.11.9",
 ]
