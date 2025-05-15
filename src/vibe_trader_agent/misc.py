@@ -3,7 +3,7 @@
 import json
 import re
 from datetime import UTC, datetime
-from typing import Dict, Union, Any
+from typing import Any, Dict, Union
 
 
 def get_current_date() -> str:

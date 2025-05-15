@@ -254,4 +254,3 @@ def calculate_financial_metrics(tickers: str) -> Dict[str, Dict[str, Any]]:
 if __name__ == "__main__":
     tickers = "AAPL,PLTR"
     indicators = calculate_financial_metrics(tickers)
-    print(indicators)
