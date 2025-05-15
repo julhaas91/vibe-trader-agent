@@ -5,19 +5,18 @@ Works with a chat model with tool calling support.
 
 from typing import Literal
 
-from langchain_core.messages import AIMessage
+from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import ToolNode
-from langgraph.graph import StateGraph, START, END
 
 from vibe_trader_agent.configuration import Configuration
-from vibe_trader_agent.state import InputState, State
-from vibe_trader_agent.tools import TOOLS
 from vibe_trader_agent.nodes import (
-    profile_builder, 
-    financial_advisor, 
-    route_model_output, 
+    financial_advisor,
+    profile_builder,
+    route_model_output,
     views_analyst,
 )
+from vibe_trader_agent.state import InputState, State
+from vibe_trader_agent.tools import TOOLS
 
 # Define a new graph
 builder = StateGraph(State, input=InputState, config_schema=Configuration)

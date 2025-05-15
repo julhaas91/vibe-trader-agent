@@ -1,19 +1,21 @@
+"""Utils module for helper functions."""
+
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+
 
 def get_current_date():
-    """
-    Get the current date in UTC timezone.
+    """Get the current date in UTC timezone.
     
     Returns:
         str: Current date in YYYY-MM-DD format
     """
-    return datetime.now(timezone.utc).strftime('%Y-%m-%d')
+    return datetime.now(UTC).strftime('%Y-%m-%d')
 
 
 def extract_json(text):
-    """Function to extract JSON data from a string"""
+    """Extract JSON data from a string."""
     try:
         # Look for JSON block between ```json and ```
         json_match = re.search(r'```json\s*([\s\S]*?)\s*```', text)
@@ -28,7 +30,6 @@ def extract_json(text):
             return json.loads(json_str)
             
         return None
-    except Exception as e:
-        print(f"Error parsing JSON: {e}")
+    except Exception:
         return None
     

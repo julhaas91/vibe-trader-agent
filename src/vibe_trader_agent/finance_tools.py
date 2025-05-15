@@ -1,11 +1,12 @@
-import yfinance as yf
-from datetime import datetime, timedelta
-from typing import List, Dict, Union, Optional, Any
-import pandas as pd
-import numpy as np
-import json
-from langchain_core.tools import tool
+"""Finance tools for the agent."""
 
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Union
+
+import numpy as np
+import pandas as pd
+import yfinance as yf
+from langchain_core.tools import tool
 
 # Financial parameters
 #    'minimal': 90,        # 3-4 months, for basic indicators
@@ -22,8 +23,7 @@ def get_stock_historical_data(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None
 ) -> Dict[str, List[float]]:
-    """
-    Fetch historical closing prices data for multiple stock tickers.
+    """Fetch historical closing prices data for multiple stock tickers.
     
     Args:
         tickers (List[str]): List of stock ticker symbols
@@ -35,8 +35,10 @@ def get_stock_historical_data(
     Returns:
         Dict: Dictionary with tickers as keys and historical data as values
     """
-    
     result = {}
+
+    if isinstance(time_window, str):
+        time_window = int(time_window)
     
     # Set the date range
     if end_date is None:
@@ -61,14 +63,12 @@ def get_stock_historical_data(
             
             if df.empty:
                 result[ticker] = None
-                print(f"Warning: No data found for {ticker}")
                 continue
 
             result[ticker] = df['Close'].tolist()
 
-        except Exception as e:
+        except Exception:
             result[ticker] = None
-            print(f"Error fetching data for {ticker}: {str(e)}")
         
     return result
 
@@ -77,8 +77,7 @@ def calculate_financial_indicators(
     closing_prices: List[float],
     ticker: str
 ) -> Dict[str, Any]:
-    """
-    Calculate financial indicators for forecasting based on closing prices.
+    """Calculate financial indicators for forecasting based on closing prices.
     
     Args:
         closing_prices (List[float]): List of closing prices
@@ -111,9 +110,9 @@ def calculate_financial_indicators(
         ema_26 = prices.ewm(span=26, adjust=False).mean()
         macd_line = ema_12 - ema_26
         signal_line = macd_line.ewm(span=9, adjust=False).mean()
-        # indicators['MACD'] = float(macd_line.iloc[-1])
-        # indicators['MACD_Signal'] = float(signal_line.iloc[-1])
-        # indicators['MACD_Histogram'] = float((macd_line - signal_line).iloc[-1])
+        indicators['MACD'] = float(macd_line.iloc[-1])
+        indicators['MACD_Signal'] = float(signal_line.iloc[-1])
+        indicators['MACD_Histogram'] = float((macd_line - signal_line).iloc[-1])
         
         # 4. Bollinger Bands
         # sma_20 = prices.rolling(window=20).mean()
@@ -128,7 +127,7 @@ def calculate_financial_indicators(
         volatility_20d = daily_returns.rolling(window=20).std() * np.sqrt(252)  # Annualized
         volatility_50d = daily_returns.rolling(window=50).std() * np.sqrt(252)
         indicators['Volatility_20d'] = round(float(volatility_20d.iloc[-1]), 2)  # Current volatility only
-        # indicators['Volatility_50d'] = float(volatility_50d.iloc[-1], 2)  # Current volatility only
+        indicators['Volatility_50d'] = round(float(volatility_50d.iloc[-1]), 2)  # Current volatility only
         indicators['Current_Volatility'] = indicators['Volatility_20d']  # Use last value
         
         # 6. Rate of Change (ROC)
@@ -171,8 +170,8 @@ def calculate_financial_indicators(
         low_14 = prices.rolling(window=14).min()
         high_14 = prices.rolling(window=14).max()
         stochastic_k = 100 * (prices - low_14) / (high_14 - low_14)
-        # indicators['Stochastic_K_Current'] = float(stochastic_k.iloc[-1], 2)  # Current value only
-        # indicators['Stochastic_D'] = float(stochastic_k.rolling(window=3).mean().iloc[-1], 2)
+        indicators['Stochastic_K_Current'] = round(float(stochastic_k.iloc[-1]), 2)  # Current value only
+        indicators['Stochastic_D'] = round(float(stochastic_k.rolling(window=3).mean().iloc[-1]), 2)
         
         # 15. Current Market Position
         # indicators['Current_Price'] = float(prices.iloc[-1], 2)
@@ -185,7 +184,6 @@ def calculate_financial_indicators(
         indicators['ADX'] = round(float(adx_value), 2) if adx_value is not None else None
         
     except Exception as e:
-        print(f"Error calculating indicators for {ticker}: {str(e)}")
         indicators['Error'] = str(e)
     
     return indicators
@@ -199,6 +197,11 @@ def calculate_adx(prices: pd.Series, period: int = 14) -> float:
         
         plus_dm = high.diff()
         minus_dm = low.diff()
+
+        # Convert to numeric to fix type issues
+        plus_dm = pd.to_numeric(plus_dm, errors='coerce')
+        minus_dm = pd.to_numeric(minus_dm, errors='coerce')
+        
         plus_dm[plus_dm < 0] = 0
         minus_dm[minus_dm > 0] = 0
         
@@ -212,13 +215,14 @@ def calculate_adx(prices: pd.Series, period: int = 14) -> float:
         adx = dx.rolling(window=period).mean()
         
         return adx.iloc[-1]
-    except:
+    except (IndexError, ZeroDivisionError, ValueError):
         return None
 
 
 @tool
 def calculate_financial_metrics(tickers: List[str]) -> Dict[str, Dict[str, Any]]:
     """Calculate comprehensive financial indicators for given tickers.
+    
     Returns key metrics including ratios, historical performance, and risk indicators for portfolio analysis.
 
     Args:
@@ -244,8 +248,6 @@ def calculate_financial_metrics(tickers: List[str]) -> Dict[str, Dict[str, Any]]
 if __name__ == "__main__":
     tickers = ['AAPL', 'PLTR']
     data = get_stock_historical_data(tickers)
-    print(data)
 
     indicators = calculate_financial_metrics(tickers)    
-    print(json.dumps(indicators, indent=2))
-
+    

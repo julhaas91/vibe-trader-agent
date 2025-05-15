@@ -1,16 +1,16 @@
 import asyncio
-from langchain_core.messages import HumanMessage, AIMessage, ToolMessage
-from langgraph.graph import StateGraph, START, END
-from langgraph.prebuilt import ToolNode
-from dotenv import load_dotenv
-load_dotenv()
 
-from vibe_trader_agent.nodes import views_analyst, route_model_output
-from vibe_trader_agent.state import State, InputState
-from vibe_trader_agent.tools import search_market_data
-from vibe_trader_agent.finance_tools import calculate_financial_metrics
+from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage
+from langgraph.graph import START, StateGraph
+from langgraph.prebuilt import ToolNode
+
 from vibe_trader_agent.misc import extract_json
+from vibe_trader_agent.nodes import route_model_output, views_analyst
+from vibe_trader_agent.state import InputState, State
 from vibe_trader_agent.tools import TOOLS
+
+load_dotenv()
 
 
 async def main():
@@ -32,29 +32,26 @@ async def main():
 
     # Run the graph
     state = State()
-    state.messages = [HumanMessage(content="[IBM, BTC]")]
+    state.messages = [HumanMessage(content="[SPY, BTC]")]
     response = await graph.ainvoke(state, {"recursion_limit": 10})
 
-    print(response)
+    last_msg = response['messages'][-1]
+
+    print(type(last_msg))
+    print(last_msg)
+
+    print('#' * 50)
+    print(last_msg.content)
+
+    # Extract
+    result = {}
+    # Check if the response contains the extraction completion marker
+    if isinstance(last_msg.content, str) and "EXTRACTION COMPLETE".lower() in last_msg.content.lower():        
+        extracted_data = extract_json(last_msg.content)
+        result["views_created"] = extracted_data if extracted_data else {"error": "missing generated views"}
 
 
 # Run the agent test
 if __name__ == "__main__":
     asyncio.run(main())
 
-
-# # Create the State
-# state = State()
-# state.messages = [HumanMessage(content="[IBM, ABNB]")]
-
-# # Run the async function directly
-# response = asyncio.run(views_analyst(state))
-# print(response)
-
-# result = {}
-# if isinstance(response.content, str) and "EXTRACTION COMPLETE".lower() in response.content.lower():        
-#     extracted_data = extract_json(response.content)
-#     result["views_created"] = extracted_data if extracted_data else {"error": "missing generated views"}
-
-# print("\n\n")
-# print(result)

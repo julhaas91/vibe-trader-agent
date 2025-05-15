@@ -2,22 +2,23 @@
 
 import json
 import re
-from datetime import datetime, UTC
-from typing import Any, Dict, cast, Literal
+from datetime import UTC, datetime
+from typing import Any, Dict, Literal, cast
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
-
-from vibe_trader_agent.tools import TOOLS, search_market_data
-from vibe_trader_agent.finance_tools import calculate_financial_metrics
-from vibe_trader_agent.misc import get_current_date, extract_json
-from vibe_trader_agent.configuration import Configuration
-from vibe_trader_agent.utils import load_chat_model
-from vibe_trader_agent.state import State
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+
+from vibe_trader_agent.configuration import Configuration
+from vibe_trader_agent.finance_tools import calculate_financial_metrics
+from vibe_trader_agent.misc import extract_json, get_current_date
 from vibe_trader_agent.prompts import (
     CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
     VIEWS_ANALYST_SYSTEM_PROMPT,
 )
+from vibe_trader_agent.state import State
+from vibe_trader_agent.tools import TOOLS, search_market_data
+from vibe_trader_agent.utils import load_chat_model
+
 
 async def profile_builder(state: State) -> Dict[str, Any]:
     """Call the LLM with the profile builder prompt to extract user profile information.
@@ -95,9 +96,9 @@ async def profile_builder(state: State) -> Dict[str, Any]:
                 # Add routing signal to hand off to financial advisor
                 result["next"] = "financial_advisor"
                                 
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
-            print(f"Failed to parse extraction data: {e}")
+            pass
             
     # Return the model's response and any extracted data
     return result
@@ -168,9 +169,9 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
                 
                 if "investment_preferences" in extracted_data and extracted_data["investment_preferences"]:
                     result["investment_preferences"] = extracted_data["investment_preferences"]
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
-            print(f"Failed to parse extraction data: {e}")
+            pass
             
     # Return the model's response and any extracted data
     return result 
@@ -213,9 +214,6 @@ async def views_analyst(state: State) -> Dict[str, Any]:
     Returns:
         dict: A dictionary containing the model's response message.
     """
-
-    print("Views Analyst is cooking....")
-
     # Create a reasoning model
     reasoning = {
         "effort": "medium",  # 'low', 'medium', or 'high'
