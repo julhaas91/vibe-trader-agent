@@ -27,8 +27,8 @@ builder.add_node("tools", ToolNode(TOOLS))
 # This means that this node is the first one called
 builder.add_edge(START, "profile_builder")
 
-# Add conditional edge from profile_builder to financial_advisor
 def route_profile_builder(state: State) -> Literal["financial_advisor", "profile_builder", "__end__"]:
+    """handles conditional logic to determine next step for profile builder node."""
     if state.next == "financial_advisor":
         return state.next
     return END
@@ -39,6 +39,7 @@ builder.add_conditional_edges(
 )
 
 def route_financial_adviser(state: State) -> Literal["world_discovery", "tools", "__end__"]:
+    """handles conditional logic to determine next step for financial adviser node."""
 
     last_message = state.messages[-1]
 
