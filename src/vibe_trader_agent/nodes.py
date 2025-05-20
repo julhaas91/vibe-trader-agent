@@ -2,20 +2,23 @@
 
 import json
 import re
-from datetime import datetime, UTC
-from typing import Any, Dict, cast, Literal
+from datetime import UTC, datetime
+from typing import Any, Dict, Literal, cast
 
-from langchain_core.messages import AIMessage
-
-from vibe_trader_agent.tools import TOOLS
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_openai import ChatOpenAI
 
 from vibe_trader_agent.configuration import Configuration
-from vibe_trader_agent.utils import load_chat_model
-from vibe_trader_agent.state import State
+from vibe_trader_agent.finance_tools import calculate_financial_metrics
+from vibe_trader_agent.misc import extract_json, get_current_date
 from vibe_trader_agent.prompts import (
     CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
-    WORLD_DISCOVERY_PROMPT
-    )
+    VIEWS_ANALYST_SYSTEM_PROMPT,
+    WORLD_DISCOVERY_PROMPT,
+)
+from vibe_trader_agent.state import State
+from vibe_trader_agent.tools import TOOLS, search_market_data
+from vibe_trader_agent.utils import load_chat_model
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
@@ -51,7 +54,7 @@ async def profile_builder(state: State) -> Dict[str, Any]:
     )
 
     # Prepare the result with the response message
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
     
     # Check if the response contains the extraction completion marker
     if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
@@ -94,12 +97,13 @@ async def profile_builder(state: State) -> Dict[str, Any]:
                 # Add routing signal to hand off to financial advisor
                 result["next"] = "financial_advisor"
                                 
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
-            print(f"Failed to parse extraction data: {e}")
+            pass
             
     # Return the model's response and any extracted data
     return result
+
 
 async def financial_advisor(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
@@ -145,7 +149,7 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
         }
 
     # Prepare the result with the response message
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
     
     # Check if the response contains the extraction completion marker
     if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
@@ -169,9 +173,9 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
 
                 result["next"] = "world_discovery"
 
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
-            print(f"Failed to parse extraction data: {e}")
+            pass
             
     # Return the model's response and any extracted data
     return result
@@ -179,18 +183,17 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
 async def world_discovery(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
 
-        This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
-        initializes the model, and processes the response.
-        If the model's response contains extraction data in JSON format, it will be parsed
-        and added to the state.
+    This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
+    initializes the model, and processes the response.
+    If the model's response contains extraction data in JSON format, it will be parsed
+    and added to the state.
 
-        Args:
-            state (State): The current state of the conversation.
+    Args:
+        state (State): The current state of the conversation.
 
-        Returns:
-            dict: A dictionary containing the model's response message and any extracted investment data.
+    Returns:
+        dict: A dictionary containing the model's response message and any extracted investment data.
     """
-
     configuration = Configuration.from_context()
 
     model = load_chat_model(configuration.model).bind_tools(TOOLS)
@@ -205,7 +208,7 @@ async def world_discovery(state: State) -> Dict[str, Any]:
         ),
     )
 
-    result = {"messages": [response]}
+    result: Dict[str, Any] = {"messages": [response]}
 
     if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
         # Try to extract the JSON data
@@ -218,10 +221,11 @@ async def world_discovery(state: State) -> Dict[str, Any]:
 
                 if "tickers_world" in extracted_data:
                     result["tickers_world"] = extracted_data["tickers_world"]
+                    result["next"] = "views_analyst"
 
-        except (json.JSONDecodeError, AttributeError) as e:
+        except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
-            print(f"Failed to parse extraction data: {e}")
+            pass
 
     return result
 
@@ -248,3 +252,75 @@ def route_model_output(state: State) -> Literal["__end__", "tools"]:
         return "__end__"
     # Otherwise we execute the requested actions
     return "tools"
+
+
+async def views_analyst(state: State) -> Dict[str, Any]:
+    """Call the LLM with the views analyst prompt to generate data structures for Black-Litterman model.
+
+    This function prepares the prompt using the VIEWS_ANALYST_SYSTEM_PROMPT,
+    initializes the reasoning model, and processes the response.
+    If the model's response contains data in JSON format, it will be parsed
+    and added to the state.
+
+    Args:
+        state (State): The current state of the conversation.
+
+    Returns:
+        dict: A dictionary containing the model's response message.
+    """
+    # Create a reasoning model
+    reasoning = {
+        "effort": "medium",  # 'low', 'medium', or 'high'
+        "summary": None,     # 'detailed', 'auto', or None
+    }
+    reason_model = ChatOpenAI(
+        model="o3-mini",
+        use_responses_api=True,
+        model_kwargs={"reasoning": reasoning}
+    )
+
+    # Initialize the model with tool binding
+    model = reason_model.bind_tools([
+        search_market_data, 
+        calculate_financial_metrics,
+    ])
+
+    # Format the system prompt with current time
+    system_message = VIEWS_ANALYST_SYSTEM_PROMPT.format(
+        system_time=get_current_date()
+    )
+
+    # Get the model's response
+    response = cast(
+        AIMessage,
+        await model.ainvoke(
+            [
+                SystemMessage(content=system_message),
+                HumanMessage(content=f"List of asset tickers: {state.tickers_world}"),
+                *state.messages,
+            ]
+        ),
+    )
+    # Note: Only works with `messages` (not State.tickers)
+
+    # Handle the case when it's the last step and the model still wants to use a tool
+    if state.is_last_step and response.tool_calls:
+        return {
+            "messages": [
+                AIMessage(
+                    id=response.id,
+                    content="Sorry, I could not find an answer to your question in the specified number of steps.",
+                )
+            ]
+        }
+
+    # Prepare the result with the response message
+    result: Dict[str, Any] = {"messages": [response]}
+    
+    # Check if the response contains the extraction completion marker
+    if isinstance(response.content, str) and "EXTRACTION COMPLETE".lower() in response.content.lower():        
+        extracted_data = extract_json(response.content)
+        result["views_created"] = extracted_data if extracted_data else {"error": "missing generated views"}
+        
+    return result
+

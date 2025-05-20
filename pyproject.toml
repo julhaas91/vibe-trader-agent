@@ -9,13 +9,16 @@ readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.11,<4.0"
 dependencies = [
-    "langgraph>=0.2.6",
+    "langgraph>=0.4.1",
     "langchain-openai>=0.1.22",
     "langchain-anthropic>=0.1.23",
     "langchain>=0.2.14",
     "langchain-fireworks>=0.1.7",
     "python-dotenv>=1.0.1",
     "langchain-tavily>=0.1",
+    "numpy>=2.2.5",
+    "pandas>=2.2.3",
+    "yfinance>=0.2.59",
 ]
 
 
@@ -63,5 +66,8 @@ convention = "google"
 [dependency-groups]
 dev = [
     "langgraph-cli[inmem]>=0.1.71",
+    "mypy>=1.15.0",
     "pytest>=8.3.5",
+    "ruff==0.11.9",
+    "streamlit>=1.45.1",
 ]
