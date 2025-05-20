@@ -1,18 +1,19 @@
 """Streamlit-based UI to test the profile builder agent."""
 
-import streamlit as st
-import uuid
 import asyncio
-from langchain_core.messages import HumanMessage
-from langgraph.graph import START, StateGraph
-from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import ToolNode
-from dotenv import load_dotenv
+import uuid
 
-from vibe_trader_agent.misc import extract_json     # type: ignore
-from vibe_trader_agent.nodes import route_model_output, profile_builder # type: ignore
-from vibe_trader_agent.state import InputState, State   # type: ignore
-from vibe_trader_agent.tools import TOOLS               # type: ignore
+import streamlit as st
+from dotenv import load_dotenv
+from langchain_core.messages import HumanMessage
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import START, StateGraph
+from langgraph.prebuilt import ToolNode
+
+from vibe_trader_agent.misc import extract_json  # type: ignore
+from vibe_trader_agent.nodes import profile_builder, route_model_output  # type: ignore
+from vibe_trader_agent.state import InputState, State  # type: ignore
+from vibe_trader_agent.tools import TOOLS  # type: ignore
 
 load_dotenv()
 

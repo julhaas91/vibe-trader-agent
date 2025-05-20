@@ -5,7 +5,7 @@ import re
 from datetime import UTC, datetime
 from typing import Any, Dict, Literal, cast
 
-from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 
 from vibe_trader_agent.configuration import Configuration
