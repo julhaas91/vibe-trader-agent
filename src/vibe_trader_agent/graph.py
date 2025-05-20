@@ -66,6 +66,18 @@ builder.add_conditional_edges(
     route_model_output
 )
 
+def route_world_discovery(state: State) -> Literal["views_analyst", "__end__"]:
+    """Route based on financial adviser output."""
+    if state.next == "views_analyst":
+        return "views_analyst"
+    return "__end__"
+
+builder.add_conditional_edges(
+    "world_discovery",
+    route_world_discovery,
+)
+
+
 builder.add_conditional_edges(
     "views_analyst",
     route_model_output,

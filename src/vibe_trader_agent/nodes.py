@@ -5,7 +5,7 @@ import re
 from datetime import UTC, datetime
 from typing import Any, Dict, Literal, cast
 
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
 from langchain_openai import ChatOpenAI
 
 from vibe_trader_agent.configuration import Configuration
@@ -221,6 +221,7 @@ async def world_discovery(state: State) -> Dict[str, Any]:
 
                 if "tickers_world" in extracted_data:
                     result["tickers_world"] = extracted_data["tickers_world"]
+                    result["next"] = "views_analyst"
 
         except (json.JSONDecodeError, AttributeError):
             # If JSON parsing fails, just continue without updating state
@@ -295,8 +296,8 @@ async def views_analyst(state: State) -> Dict[str, Any]:
         await model.ainvoke(
             [
                 SystemMessage(content=system_message),
-                *state.messages
-                # HumanMessage(content=state.tickers),
+                HumanMessage(content=f"List of asset tickers: {state.tickers_world}"),
+                *state.messages,
             ]
         ),
     )
