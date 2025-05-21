@@ -63,11 +63,7 @@ async def search_market_data(query: str) -> Optional[dict[str, Any]]:
     return cast(dict[str, Any], await wrapped.ainvoke({"query": query}))
 
 
-### Define the tools that will be available to the agent
-TOOLS = [
-    search, 
-    lookup_financial_info, 
-    search_market_data, 
-    calculate_financial_metrics
-]
-
+# Define individual tools per each node 
+financial_advisor_tools = [search]
+world_discovery_tools = [search]
+views_analyst_tools = [search_market_data, calculate_financial_metrics]
