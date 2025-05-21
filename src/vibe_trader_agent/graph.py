@@ -1,9 +1,5 @@
-"""Define a custom Reasoning and Action agent.
+"""Vibe-trader Multi-Agent setup."""
 
-Works with a chat model with tool calling support.
-"""
-
-from typing import Literal
 
 from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -11,83 +7,86 @@ from langgraph.prebuilt import ToolNode
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.nodes import (
     financial_advisor,
+    human_input_node,
     profile_builder,
-    route_model_output,
     views_analyst,
     world_discovery,
 )
+from vibe_trader_agent.routers import (
+    route_financial_advisor_output,
+    route_profile_builder_output,
+    route_views_analyst_output,
+    route_world_discovery_output,
+)
 from vibe_trader_agent.state import InputState, State
-from vibe_trader_agent.tools import TOOLS
+from vibe_trader_agent.tools import (
+    financial_advisor_tools,
+    views_analyst_tools,
+    world_discovery_tools,
+)
+
+# -----
+
+# def world_discovery(state: State):
+#     print("World Discovery triggered")
+#     return {"messages": ["World Discovery triggered!"]}
+
+
 
 # Define a new graph
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
 # Define the nodes we will use
 builder.add_node("profile_builder", profile_builder)
+builder.add_node("human_input_profile", human_input_node)
+
 builder.add_node("financial_advisor", financial_advisor)
+builder.add_node("human_input_advisor", human_input_node)
+builder.add_node("financial_advisor_tools", ToolNode(financial_advisor_tools))
+
 builder.add_node("world_discovery", world_discovery)
+builder.add_node("world_discovery_tools", ToolNode(world_discovery_tools))
+
 builder.add_node("views_analyst", views_analyst)
-builder.add_node("tools", ToolNode(TOOLS))
+builder.add_node("views_analyst_tools", ToolNode(views_analyst_tools))
 
-# Set the entrypoint as profile_builder
-# This means that this node is the first one called
+
+
+# Define workflow
 builder.add_edge(START, "profile_builder")
-
-# Add conditional edge from profile_builder to financial_advisor
-def route_profile_builder(state: State) -> Literal["financial_advisor", "__end__"]:
-    """Route based on profile builder output."""
-    if state.next == "financial_advisor":
-        return "financial_advisor"
-    return "__end__"
 
 builder.add_conditional_edges(
     "profile_builder",
-    route_profile_builder,
+    route_profile_builder_output,
 )
+builder.add_edge("human_input_profile", "profile_builder")
 
-def route_financial_adviser(state: State) -> Literal["world_discovery", "__end__"]:
-    """Route based on financial adviser output."""
-    if state.next == "world_discovery":
-        return "world_discovery"
-    return "__end__"
+# if explicit edge - failing
+# builder.add_edge("profile_builder", "financial_advisor")
 
+# //
 builder.add_conditional_edges(
     "financial_advisor",
-    route_financial_adviser,
+    route_financial_advisor_output,
 )
+builder.add_edge("human_input_advisor", "financial_advisor")
+builder.add_edge("financial_advisor_tools", "financial_advisor")
 
-builder.add_conditional_edges(
-    "financial_advisor",
-    route_model_output,
-)
-
+# //
 builder.add_conditional_edges(
     "world_discovery",
-    route_model_output
+    route_world_discovery_output,
 )
+builder.add_edge("world_discovery_tools", "world_discovery")
 
-def route_world_discovery(state: State) -> Literal["views_analyst", "__end__"]:
-    """Route based on financial adviser output."""
-    if state.next == "views_analyst":
-        return "views_analyst"
-    return "__end__"
-
-builder.add_conditional_edges(
-    "world_discovery",
-    route_world_discovery,
-)
-
-
+# //
 builder.add_conditional_edges(
     "views_analyst",
-    route_model_output,
+    route_views_analyst_output,
 )
+builder.add_edge("views_analyst_tools", "views_analyst")
 
-# Add a normal edge from `tools` to `call_model`
-# This creates a cycle: after using tools, we always return to the model
-builder.add_edge("tools", "financial_advisor")
-builder.add_edge("tools", "world_discovery")
-builder.add_edge("tools", "views_analyst")
 
 # Compile the builder into an executable graph
-graph = builder.compile(name="Vibe Trader Agent")
+graph = builder.compile(name="[Test] Vibe Trader Agent")
+

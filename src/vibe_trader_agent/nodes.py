@@ -3,13 +3,13 @@
 import json
 import re
 from datetime import UTC, datetime
-from typing import Any, Dict, Literal, cast
+from typing import Any, Dict, cast
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
+from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration
-from vibe_trader_agent.finance_tools import calculate_financial_metrics
 from vibe_trader_agent.misc import extract_json, get_current_date
 from vibe_trader_agent.prompts import (
     CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
@@ -17,7 +17,11 @@ from vibe_trader_agent.prompts import (
     WORLD_DISCOVERY_PROMPT,
 )
 from vibe_trader_agent.state import State
-from vibe_trader_agent.tools import TOOLS, search_market_data
+from vibe_trader_agent.tools import (
+    financial_advisor_tools,
+    views_analyst_tools,
+    world_discovery_tools,
+)
 from vibe_trader_agent.utils import load_chat_model
 
 
@@ -122,7 +126,7 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
     configuration = Configuration.from_context()
 
     # Initialize the model with tool binding
-    model = load_chat_model(configuration.model).bind_tools(TOOLS)
+    model = load_chat_model(configuration.model).bind_tools(financial_advisor_tools)
 
     # Format the system prompt with current time
     system_message = CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT.format(
@@ -180,6 +184,7 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
     # Return the model's response and any extracted data
     return result
 
+
 async def world_discovery(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
 
@@ -196,7 +201,7 @@ async def world_discovery(state: State) -> Dict[str, Any]:
     """
     configuration = Configuration.from_context()
 
-    model = load_chat_model(configuration.model).bind_tools(TOOLS)
+    model = load_chat_model(configuration.model).bind_tools(world_discovery_tools)
     system_message = WORLD_DISCOVERY_PROMPT.format(
         system_time=datetime.now(tz=UTC).isoformat()
         )
@@ -230,30 +235,6 @@ async def world_discovery(state: State) -> Dict[str, Any]:
     return result
 
 
-
-def route_model_output(state: State) -> Literal["__end__", "tools"]:
-    """Determine the next node based on the model's output.
-
-    This function checks if the model's last message contains tool calls.
-
-    Args:
-        state (State): The current state of the conversation.
-
-    Returns:
-        str: The name of the next node to call ("__end__" or "tools").
-    """
-    last_message = state.messages[-1]
-    if not isinstance(last_message, AIMessage):
-        raise ValueError(
-            f"Expected AIMessage in output edges, but got {type(last_message).__name__}"
-        )
-    # If there is no tool call, then we finish
-    if not last_message.tool_calls:
-        return "__end__"
-    # Otherwise we execute the requested actions
-    return "tools"
-
-
 async def views_analyst(state: State) -> Dict[str, Any]:
     """Call the LLM with the views analyst prompt to generate data structures for Black-Litterman model.
 
@@ -280,10 +261,7 @@ async def views_analyst(state: State) -> Dict[str, Any]:
     )
 
     # Initialize the model with tool binding
-    model = reason_model.bind_tools([
-        search_market_data, 
-        calculate_financial_metrics,
-    ])
+    model = reason_model.bind_tools(views_analyst_tools)
 
     # Format the system prompt with current time
     system_message = VIEWS_ANALYST_SYSTEM_PROMPT.format(
@@ -324,3 +302,21 @@ async def views_analyst(state: State) -> Dict[str, Any]:
         
     return result
 
+
+def human_input_node(state: State) -> Dict[str, Any]:
+    """Node that pauses execution to get input from the human user.
+    
+    Args:
+        state (State): The current state of the conversation.
+
+    Returns:
+        dict: A dictionary containing the user's response message.
+    """
+    # Last msg from the model
+    model_response = state.messages[-1].content
+
+    # Use interrupt to pause graph execution and wait for user input
+    user_response = interrupt(model_response)
+    
+    # Return the user input to update the state
+    return {"user_input": user_response}
