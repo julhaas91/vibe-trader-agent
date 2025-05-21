@@ -5,7 +5,7 @@ from langchain_core.messages import AIMessage
 from vibe_trader_agent.state import State
 
 
-def route_profile_builder_output(state: State):
+def route_profile_builder_output(state: State) -> str:
     """Route based on the output of the profile builder."""
     last_message = state.messages[-1]
     if not isinstance(last_message, AIMessage):
@@ -21,7 +21,7 @@ def route_profile_builder_output(state: State):
     return "human_input_profile"
 
 
-def route_financial_advisor_output(state: State):
+def route_financial_advisor_output(state: State) -> str:
     """Route based on the output of the financial advisor."""
     last_message = state.messages[-1]
     if not isinstance(last_message, AIMessage):
@@ -41,7 +41,7 @@ def route_financial_advisor_output(state: State):
     return "human_input_advisor"
 
 
-def route_world_discovery_output(state: State):
+def route_world_discovery_output(state: State) -> str:
     """Route based on the output of the world discovery."""
     last_message = state.messages[-1]
     if not isinstance(last_message, AIMessage):
@@ -57,7 +57,7 @@ def route_world_discovery_output(state: State):
     return "views_analyst"
 
 
-def route_views_analyst_output(state: State):
+def route_views_analyst_output(state: State) -> str:
     """Route based on the output of the world discovery."""
     last_message = state.messages[-1]
     if not isinstance(last_message, AIMessage):
