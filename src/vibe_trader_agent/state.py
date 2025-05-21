@@ -45,6 +45,9 @@ class State(InputState):
     This class can be used to store any information needed throughout the agent's lifecycle.
     """
 
+    user_input: str = field(default="")
+    """User input from the Human-in-the-loop node."""
+
     is_last_step: IsLastStep = field(default=False)
     """
     Indicates whether the current step is the last one before the graph raises an error.
