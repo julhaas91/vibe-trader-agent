@@ -1,5 +1,6 @@
 """Vibe-Trader Multi-Agent Setup."""
 
+from typing import Any, Dict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -28,7 +29,7 @@ from vibe_trader_agent.tools import (
 
 # -----
 
-def dummy_node(state: State):
+def dummy_node(state: State) -> Dict[str, Any]:
     """Create dummy node placeholder for quick experiments."""
     return {"messages": ["Dummy Node triggered!"]}
 # builder.add_node("asset_finder", dummy_node)

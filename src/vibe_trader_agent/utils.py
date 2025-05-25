@@ -1,5 +1,7 @@
 """Utility & helper functions."""
 
+from typing import Any, Dict, List, Optional
+
 from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
@@ -27,8 +29,25 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
     return init_chat_model(model, model_provider=provider)
 
 
-def concatenate_mandate_data(existing_holdings, excluded_assets, investment_preferences):
-    """Concatenate user-collected madate data into a single string."""
+def concatenate_mandate_data(
+    existing_holdings: Optional[List[Dict[str, Any]]], 
+    excluded_assets: Optional[List[Dict[str, Any]]], 
+    investment_preferences: Optional[List[Dict[str, Any]]]
+) -> str:
+    """Concatenate user-collected mandate data into a single string.
+    
+    Args:
+        existing_holdings: List of holdings dictionaries containing ticker_name, 
+            quantity, and optionally exchange and region keys.
+        excluded_assets: List of excluded asset dictionaries containing ticker_name, 
+            reason, and optionally exchange and region keys.
+        investment_preferences: List of preference dictionaries containing 
+            preference_type and description keys.
+    
+    Returns:
+        Semicolon-separated string of formatted mandate data, or empty string 
+        if all inputs are None/empty.    
+    """        
     parts = []
     
     if existing_holdings:

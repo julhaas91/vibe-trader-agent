@@ -19,7 +19,7 @@ def extract_profile_data(
     cash_reserve: float = 0.0,
     max_single_asset_allocation_percentage: float = 0.0,
     target_amount: float = 0.0
-) -> dict:
+) -> Dict[str, Any]:
     """Extract and confirm user profile information when ALL required fields are collected.
 
     Args:
