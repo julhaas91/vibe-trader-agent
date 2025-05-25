@@ -40,103 +40,51 @@ class InputState:
 
 @dataclass
 class State(InputState):
-    """Represents the complete state of the agent, extending InputState with additional attributes.
-
+    """Complete agent state storing user-provided information 
+    
     This class can be used to store any information needed throughout the agent's lifecycle.
     """
 
-    user_input: str = field(default="")
-    """User input from the Human-in-the-loop node."""
-
+    # Control flow
+    user_input: str = field(default="")                 # human-in-the-loop
     is_last_step: IsLastStep = field(default=False)
-    """
-    Indicates whether the current step is the last one before the graph raises an error.
-
-    This is a 'managed' variable, controlled by the state machine rather than user code.
-    It is set to 'True' when the step count reaches recursion_limit - 1.
-    """
+    next: Optional[str] = field(default=None)           # next node to route to
     
-    next: Optional[str] = field(default=None)
-    """The next node to route to in the graph."""
-    
-    improvement_requests: Optional[List[str]] = field(default=None)
-    """List of improvement requests made by the user during profile building. Initialized as None."""
-    
-    confirmed_profile: bool = field(default=False)
-    """Flag indicating whether the user has confirmed their profile information."""
-    
-    # Store extracted profile information
+    # User profile data
+    profile_complete: bool = field(default=False)       # flag indicating completeness
     name: str = field(default="")
-    """The user's full name"""
-    
     age: int = field(default=0)
-    """The user's age in years"""
-    
     start_portfolio: float = field(default=0.0)
-    """The initial capital the user has ready to invest"""
-    
     planning_horizon: str = field(default="")
-    """The time period (in months or years) for which the user is planning to invest"""
-    
     maximum_drawdown_percentage: float = field(default=0.0)
-    """The maximum portfolio decline (in %) the user is comfortable with"""
-    
     worst_day_decline_percentage: float = field(default=0.0)
-    """The maximum single-day decline (in %) the user can tolerate"""
-    
     cash_reserve: float = field(default=0.0)
-    """The amount of money the user wants to keep available for immediate withdrawal"""
-    
     max_single_asset_allocation_percentage: float = field(default=0.0)
-    """The maximum percentage of their portfolio they want in any single asset"""
-    
     target_amount: float = field(default=0.0)
-    """The financial goal or target amount the user aims to achieve"""
     
-    # Store extracted investment information
+    # Investment mandate data
+    mandate_complete: bool = field(default=False)       # flag indicating completeness
+
     existing_holdings: List[Dict[str, Any]] = field(default_factory=list)
-    """
-    List of dictionaries containing information about assets the user already holds.
-    Each dictionary contains:
-    - ticker_name: str - The ticker symbol of the asset
-    - quantity: float - The quantity of the asset held
-    - exchange: str (optional) - The exchange where the asset is traded
-    - region: str (optional) - The region where the asset is traded
-    """
-
+    """User's current asset holdings with ticker, quantity, exchange, and region."""
+    
     excluded_assets: List[Dict[str, Any]] = field(default_factory=list)
-    """
-    List of dictionaries containing information about assets the user wants to exclude.
-    Each dictionary contains:
-    - ticker_name: str - The ticker symbol or category to exclude
-    - reason: str - The user's reason for exclusion
-    - exchange: str (optional) - The exchange where the asset is traded
-    - region: str (optional) - The region where the asset is traded
-    """
-
+    """Assets to exclude with ticker/category, reason, exchange, and region."""
+    
     investment_preferences: List[Dict[str, Any]] = field(default_factory=list)
-    """
-    List of dictionaries containing the user's investment preferences.
-    Each dictionary contains:
-    - preference_type: str - The type of preference (e.g., sector, theme, characteristic)
-    - description: str - Detailed description of the preference
-    """
+    """Investment preferences with preference_type and description."""
 
-    tickers_world: List[str] = field(default_factory=list)
+    # Investment portfolio
+    tickers: List[str] = field(default_factory=list)
     """List of tickers available to build a portfolio for."""
 
-    views_created: Dict[str, Any] = field(default_factory=dict)
+    # Black-Litterman modelling inputs
+    bl_views: Dict[str, Any] = field(default_factory=dict)
     """
-    Dict of views (`v`) data structures per assets (`k`) for the Black-Litterman model.
     Contains:
     - p_matrix: List[List[int]] - Views matrix (v×k): Each row represents one view.
     - q_vector: List[float] - Expected returns (v×1) for each view.
-    - sigma_matrix: List[List[Union[int, float]]] - Diagonal matrix (v×v)of view uncertainty.
+    - sigma_vector: List[List[Union[int, float]]] - Diagonal matrix (v×v)of view uncertainty.
     - explanation: str - Brief explanation of the generated views.
+    - tickers: List[str] - ticker ordering for reference
     """
-
-    # Additional attributes can be added here as needed.
-    # Common examples include:
-    # retrieved_documents: List[Document] = field(default_factory=list)
-    # extracted_entities: Dict[str, Any] = field(default_factory=dict)
-    # api_connections: Dict[str, Any] = field(default_factory=dict)
