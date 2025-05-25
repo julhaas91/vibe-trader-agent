@@ -1,14 +1,14 @@
 """Routers for each node."""
 
-from typing import Optional, Dict, Any, Literal
+from typing import Literal
+
 from langchain_core.messages import AIMessage
 
 from vibe_trader_agent.state import State
 
 
 def route_profile_builder_output(state: State) -> Literal["financial_advisor", "tools_builder", "human_input_builder"]:
-    """
-    Route based on the profile builder output.
+    """Route based on the profile builder output.
     
     Args:
         state (State): Current conversation state
@@ -18,7 +18,7 @@ def route_profile_builder_output(state: State) -> Literal["financial_advisor", "
     """
     # Check if routing is explicitly set
     if state.next:
-        return state.next
+        return state.next  # type: ignore
     
     # Fallback: check if profile is complete
     if state.profile_complete:
@@ -29,8 +29,7 @@ def route_profile_builder_output(state: State) -> Literal["financial_advisor", "
 
 
 def route_financial_advisor_output(state: State) -> Literal["asset_finder", "tools_advisor", "human_input_advisor"]:
-    """
-    Route based on the financial advisor output.
+    """Route based on the financial advisor output.
     
     Args:
         state (State): Current conversation state
@@ -40,7 +39,7 @@ def route_financial_advisor_output(state: State) -> Literal["asset_finder", "too
     """    
     # Check if routing is explicitly set
     if state.next:
-        return state.next
+        return state.next  # type: ignore
     
     # Fallback: check if mandate is complete
     if state.mandate_complete:
@@ -51,8 +50,7 @@ def route_financial_advisor_output(state: State) -> Literal["asset_finder", "too
 
 
 def route_asset_finder_output(state: State) -> Literal["views_analyst", "tools_finder", "human_input_finder"]:
-    """
-    Route based on the asset finder output.
+    """Route based on the asset finder output.
     
     Args:
         state (State): Current conversation state
@@ -62,7 +60,7 @@ def route_asset_finder_output(state: State) -> Literal["views_analyst", "tools_f
     """    
     # Check if routing is explicitly set
     if state.next:
-        return state.next
+        return state.next  # type: ignore
     
     # Fallback: check if mandate is complete
     if state.tickers:
@@ -73,8 +71,7 @@ def route_asset_finder_output(state: State) -> Literal["views_analyst", "tools_f
 
 
 def route_views_analyst_output(state: State) -> Literal["tools_analyst", "optimization"]:
-    """
-    Route based on the views analyst output.
+    """Route based on the views analyst output.
     
     Args:
         state (State): Current conversation state

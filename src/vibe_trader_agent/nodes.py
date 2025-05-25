@@ -1,35 +1,33 @@
 """Node module for the Vibe Trader Agent."""
 
 import json
-import re
 from datetime import UTC, datetime
 from typing import Any, Dict, cast
 
-from langchain_core.messages import AIMessage, SystemMessage, HumanMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.misc import get_current_date
 from vibe_trader_agent.prompts import (
-    PROFILE_BUILDER_SYSTEM_PROMPT,
-    FINANCIAL_ADVISOR_SYSTEM_PROMPT,
-    VIEWS_ANALYST_SYSTEM_PROMPT,
     ASSET_FINDER_SYSTEM_PROMPT,
+    FINANCIAL_ADVISOR_SYSTEM_PROMPT,
+    PROFILE_BUILDER_SYSTEM_PROMPT,
+    VIEWS_ANALYST_SYSTEM_PROMPT,
 )
 from vibe_trader_agent.state import State
 from vibe_trader_agent.tools import (
-    financial_advisor_tools,
-    views_analyst_tools,
     asset_finder_tools,
+    financial_advisor_tools,
     profile_builder_tools,
+    views_analyst_tools,
 )
-from vibe_trader_agent.utils import load_chat_model, concatenate_mandate_data
+from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
-    """
-    Engage with user to collect profile information and route appropriately.
+    """Engage with user to collect profile information and route appropriately.
     
     Args:
         state (State): The current state of the conversation.
@@ -224,7 +222,6 @@ async def views_analyst(state: State) -> Dict[str, Any]:
     Returns:
         dict: A dictionary containing the model's response message.
     """
-
     # Check if the last message is a ToolMessage from extract_bl_views tool
     if state.messages and len(state.messages) > 0:
         last_message = state.messages[-1]

@@ -6,13 +6,13 @@ from langchain_core.tools import tool
 from langchain_tavily import TavilySearch  # type: ignore[import-untyped]
 
 from vibe_trader_agent.configuration import Configuration
-from vibe_trader_agent.finance_tools import calculate_financial_metrics
 from vibe_trader_agent.extraction_tools import (
-    extract_profile_data,
-    extract_mandate_data,
-    extract_tickers_data,
     extract_bl_views,
+    extract_mandate_data,
+    extract_profile_data,
+    extract_tickers_data,
 )
+from vibe_trader_agent.finance_tools import calculate_financial_metrics
 
 
 @tool
@@ -52,7 +52,8 @@ async def search_market_data(query: str) -> Optional[dict[str, Any]]:
 
     Args:
         query (str): Your search query. Be specific with ticker symbols and financial terms. 
-                    Examples:
+
+    Examples:
                     - "AAPL quarterly earnings Q4 2025"
                     - "Tesla stock price analyst forecast"
                     - "S&P 500 sector rotation trends"

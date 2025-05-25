@@ -1,35 +1,35 @@
 """Vibe-Trader Multi-Agent Setup."""
 
 
-from langgraph.graph import START, END, StateGraph
+from langgraph.graph import END, START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.nodes import (
+    asset_finder,
     financial_advisor,
     human_input_node,
     profile_builder,
     views_analyst,
-    asset_finder,
 )
 from vibe_trader_agent.routers import (
+    route_asset_finder_output,
     route_financial_advisor_output,
     route_profile_builder_output,
     route_views_analyst_output,
-    route_asset_finder_output,
 )
 from vibe_trader_agent.state import InputState, State
 from vibe_trader_agent.tools import (
-    financial_advisor_tools,
-    views_analyst_tools,
     asset_finder_tools,
+    financial_advisor_tools,
     profile_builder_tools,
+    views_analyst_tools,
 )
 
 # -----
 
 def dummy_node(state: State):
-    print("Dummy Node triggered")
+    """Create dummy node placeholder for quick experiments."""
     return {"messages": ["Dummy Node triggered!"]}
 # builder.add_node("asset_finder", dummy_node)
 

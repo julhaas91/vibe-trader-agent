@@ -35,8 +35,10 @@ def concatenate_mandate_data(existing_holdings, excluded_assets, investment_pref
         holdings = []
         for h in existing_holdings:
             text = f"{h['ticker_name']} of quantity {h['quantity']}"
-            if h.get('exchange'): text += f" on {h['exchange']}"
-            if h.get('region'): text += f" in {h['region']}"
+            if h.get('exchange'):
+                text += f" on {h['exchange']}"
+            if h.get('region'):
+                text += f" in {h['region']}"
             holdings.append(text)
         parts.append(f"existing_holdings: {', '.join(holdings)}")
     
@@ -44,8 +46,10 @@ def concatenate_mandate_data(existing_holdings, excluded_assets, investment_pref
         excluded = []
         for e in excluded_assets:
             text = f"{e['ticker_name']} (reason: {e['reason']})"
-            if e.get('exchange'): text += f" on {e['exchange']}"
-            if e.get('region'): text += f" in {e['region']}"
+            if e.get('exchange'):
+                text += f" on {e['exchange']}"
+            if e.get('region'):
+                text += f" in {e['region']}"
             excluded.append(text)
         parts.append(f"excluded_assets: {', '.join(excluded)}")
     

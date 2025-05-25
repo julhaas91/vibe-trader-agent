@@ -40,7 +40,7 @@ class InputState:
 
 @dataclass
 class State(InputState):
-    """Complete agent state storing user-provided information 
+    """Complete agent state storing user-provided information.
     
     This class can be used to store any information needed throughout the agent's lifecycle.
     """
