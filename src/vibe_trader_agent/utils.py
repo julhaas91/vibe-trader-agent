@@ -25,3 +25,32 @@ def load_chat_model(fully_specified_name: str) -> BaseChatModel:
     """
     provider, model = fully_specified_name.split("/", maxsplit=1)
     return init_chat_model(model, model_provider=provider)
+
+
+def concatenate_mandate_data(existing_holdings, excluded_assets, investment_preferences):
+    """Concatenate user-collected madate data into a single string."""
+    parts = []
+    
+    if existing_holdings:
+        holdings = []
+        for h in existing_holdings:
+            text = f"{h['ticker_name']} of quantity {h['quantity']}"
+            if h.get('exchange'): text += f" on {h['exchange']}"
+            if h.get('region'): text += f" in {h['region']}"
+            holdings.append(text)
+        parts.append(f"existing_holdings: {', '.join(holdings)}")
+    
+    if excluded_assets:
+        excluded = []
+        for e in excluded_assets:
+            text = f"{e['ticker_name']} (reason: {e['reason']})"
+            if e.get('exchange'): text += f" on {e['exchange']}"
+            if e.get('region'): text += f" in {e['region']}"
+            excluded.append(text)
+        parts.append(f"excluded_assets: {', '.join(excluded)}")
+    
+    if investment_preferences:
+        prefs = ", ".join([f"{p['preference_type']}: {p['description']}" for p in investment_preferences])
+        parts.append(f"investment_preferences: {prefs}")
+    
+    return "; ".join(parts)
