@@ -251,6 +251,44 @@ def calculate_financial_metrics(tickers: str) -> Dict[str, Dict[str, Any]]:
     return indicators_dict
 
 
+def validate_ticker_exists(ticker: str) -> bool:
+    """Validate if a given stock ticker symbol exists on Yahoo Finance.
+
+    Attempts to retrieve basic information for the ticker. 
+    Returns `True` if the ticker is likely valid based on the availability of
+    information, and `False` otherwise.
+
+    Args:
+        ticker (str): The stock ticker symbol to validate (e.g., "AAPL").
+
+    Returns:
+        bool: `True` if the ticker appears to be valid, `False` otherwise.
+    """    
+    try:
+        # Create ticker object
+        ticker_obj = yf.Ticker(ticker)
+        
+        # Try to get basic info - this will fail if ticker doesn't exist
+        info = ticker_obj.info
+        
+        # Additional validation - check if we got meaningful data
+        if not info or len(info) <= 1:
+            return False
+            
+        # Check for common indicators of invalid tickers
+        if info.get('regularMarketPrice') is None and info.get('previousClose') is None:
+            # Try getting recent price data as a fallback
+            hist = ticker_obj.history(period='5d')
+            if hist.empty:
+                return False
+        
+        return True
+        
+    except Exception:
+        # Any exception means ticker is likely invalid
+        return False
+
+
 if __name__ == "__main__":
     tickers = "AAPL,PLTR"
     indicators = calculate_financial_metrics(tickers)

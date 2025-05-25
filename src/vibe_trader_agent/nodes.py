@@ -1,111 +1,80 @@
 """Node module for the Vibe Trader Agent."""
 
 import json
-import re
 from datetime import UTC, datetime
 from typing import Any, Dict, cast
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration
-from vibe_trader_agent.misc import extract_json, get_current_date
+from vibe_trader_agent.misc import get_current_date
 from vibe_trader_agent.prompts import (
-    CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
+    ASSET_FINDER_SYSTEM_PROMPT,
+    FINANCIAL_ADVISOR_SYSTEM_PROMPT,
+    PROFILE_BUILDER_SYSTEM_PROMPT,
     VIEWS_ANALYST_SYSTEM_PROMPT,
-    WORLD_DISCOVERY_PROMPT,
 )
 from vibe_trader_agent.state import State
 from vibe_trader_agent.tools import (
+    asset_finder_tools,
     financial_advisor_tools,
+    profile_builder_tools,
     views_analyst_tools,
-    world_discovery_tools,
 )
-from vibe_trader_agent.utils import load_chat_model
+from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
-    """Call the LLM with the profile builder prompt to extract user profile information.
-
-    This function prepares the prompt using the PROFILE_BUILDER_SYSTEM_PROMPT, 
-    initializes the model, and processes the response.
-    If the model's response contains extraction data in JSON format, it will be parsed
-    and added to the state.
-
+    """Engage with user to collect profile information and route appropriately.
+    
     Args:
         state (State): The current state of the conversation.
-
+        
     Returns:
-        dict: A dictionary containing the model's response message and any extracted profile data.
+        dict: Updated state with response and routing information.
     """
-    from vibe_trader_agent.prompts import PROFILE_BUILDER_SYSTEM_PROMPT
-    
     configuration = Configuration.from_context()
 
-    # Initialize the model
+    # Initialize the model with tools
     model = load_chat_model(configuration.model)
+    model_with_tools = model.bind_tools(profile_builder_tools)
 
-    # Use the PROFILE_BUILDER_SYSTEM_PROMPT
-    system_message = PROFILE_BUILDER_SYSTEM_PROMPT
-
-    # Get the model's response
-    response = cast(
-        AIMessage,
-        await model.ainvoke(
-            [{"role": "system", "content": system_message}, *state.messages]
-        ),
+    # Format the system prompt with current time
+    system_message = PROFILE_BUILDER_SYSTEM_PROMPT.format(
+        system_time=datetime.now(tz=UTC).isoformat()
     )
 
-    # Prepare the result with the response message
-    result: Dict[str, Any] = {"messages": [response]}
+    # Get the model's response
+    response = cast(AIMessage, await model_with_tools.ainvoke([
+        {"role": "system", "content": system_message},
+        *state.messages
+    ]))
+
+    # State Update with LLM response
+    result: Dict[str, Any] = {}
+
+    # Check if any tools were called by LLM
+    if response.tool_calls:
+        tool_call = response.tool_calls[0]
+
+        if tool_call["name"] == "extract_profile_data":
+            # Profile extraction completed - update state and route to financial advisor
+            # Note: don't add tool-call message
+            profile_data = tool_call["args"]
+            result.update(profile_data)
+            result["next"] = "financial_advisor"
+            return result
+        elif tool_call["name"] == "search":
+            # Search tool called - continue to tools node
+            result["messages"] = [response]
+            result["next"] = "tools_builder"
+            return result
     
-    # Check if the response contains the extraction completion marker
-    if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
-        # Try to extract the JSON data
-        try:
-            # Find the JSON block between ```json and ```
-            json_match = re.search(r"```json\s*(.*?)\s*```", response.content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-                extracted_data = json.loads(json_str)
-                
-                # Extract profile information
-                if "name" in extracted_data:
-                    result["name"] = extracted_data["name"]
-                
-                if "age" in extracted_data:
-                    result["age"] = extracted_data["age"]
-                
-                if "start_portfolio" in extracted_data:
-                    result["start_portfolio"] = extracted_data["start_portfolio"]
-                
-                if "planning_horizon" in extracted_data:
-                    result["planning_horizon"] = extracted_data["planning_horizon"]
-                
-                if "maximum_drawdown_percentage" in extracted_data:
-                    result["maximum_drawdown_percentage"] = extracted_data["maximum_drawdown_percentage"]
-                
-                if "worst_day_decline_percentage" in extracted_data:
-                    result["worst_day_decline_percentage"] = extracted_data["worst_day_decline_percentage"]
-                
-                if "cash_reserve" in extracted_data:
-                    result["cash_reserve"] = extracted_data["cash_reserve"]
-                
-                if "max_single_asset_allocation_percentage" in extracted_data:
-                    result["max_single_asset_allocation_percentage"] = extracted_data["max_single_asset_allocation_percentage"]
-                
-                if "target_amount" in extracted_data:
-                    result["target_amount"] = extracted_data["target_amount"]
-                
-                # Add routing signal to hand off to financial advisor
-                result["next"] = "financial_advisor"
-                                
-        except (json.JSONDecodeError, AttributeError):
-            # If JSON parsing fails, just continue without updating state
-            pass
-            
-    # Return the model's response and any extracted data
+    # No tools called - continue conversation with user
+    result["messages"] = [response]
+    result["next"] = "human_input_builder"
     return result
 
 
@@ -129,7 +98,7 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
     model = load_chat_model(configuration.model).bind_tools(financial_advisor_tools)
 
     # Format the system prompt with current time
-    system_message = CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT.format(
+    system_message = FINANCIAL_ADVISOR_SYSTEM_PROMPT.format(
         system_time=datetime.now(tz=UTC).isoformat()
     )
 
@@ -152,40 +121,33 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
             ]
         }
 
-    # Prepare the result with the response message
-    result: Dict[str, Any] = {"messages": [response]}
-    
-    # Check if the response contains the extraction completion marker
-    if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
-        # Try to extract the JSON data
-        try:
-            # Find the JSON block between ```json and ```
-            json_match = re.search(r"```json\s*(.*?)\s*```", response.content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-                extracted_data = json.loads(json_str)
-                
-                # Update the state with extracted data
-                if "existing_holdings" in extracted_data and extracted_data["existing_holdings"]:
-                    result["existing_holdings"] = extracted_data["existing_holdings"]
-                
-                if "excluded_assets" in extracted_data and extracted_data["excluded_assets"]:
-                    result["excluded_assets"] = extracted_data["excluded_assets"]
-                
-                if "investment_preferences" in extracted_data and extracted_data["investment_preferences"]:
-                    result["investment_preferences"] = extracted_data["investment_preferences"]
+    # State update with LLM response
+    result: Dict[str, Any] = {}
 
-                result["next"] = "world_discovery"
+    # Check if any tools were called by LLM
+    if response.tool_calls:
+        tool_call = response.tool_calls[0]
 
-        except (json.JSONDecodeError, AttributeError):
-            # If JSON parsing fails, just continue without updating state
-            pass
-            
-    # Return the model's response and any extracted data
+        if tool_call["name"] == "extract_mandate_data":
+            # Mandate extraction completed - update state and route to asset finder
+            # Note: don't add tool-call message
+            mandate_data = tool_call["args"]
+            result.update(mandate_data)
+            result["next"] = "asset_finder"
+            return result
+        elif tool_call["name"] == "search":
+            # Search tool called - continue to tools node
+            result["messages"] = [response]
+            result["next"] = "tools_advisor"
+            return result
+
+    # No tools called - continue conversation with user
+    result["messages"] = [response]
+    result["next"] = "human_input_advisor"
     return result
 
 
-async def world_discovery(state: State) -> Dict[str, Any]:
+async def asset_finder(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
 
     This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
@@ -201,47 +163,58 @@ async def world_discovery(state: State) -> Dict[str, Any]:
     """
     configuration = Configuration.from_context()
 
-    model = load_chat_model(configuration.model).bind_tools(world_discovery_tools)
-    system_message = WORLD_DISCOVERY_PROMPT.format(
+    model = load_chat_model(configuration.model).bind_tools(asset_finder_tools)
+    system_message = ASSET_FINDER_SYSTEM_PROMPT.format(
         system_time=datetime.now(tz=UTC).isoformat()
         )
+
+    # Merge mandate info together
+    user_mandate = concatenate_mandate_data(state.existing_holdings, state.excluded_assets, state.investment_preferences)
 
     response = cast(
         AIMessage,
         await model.ainvoke(
-            [{"role": "system", "content": system_message}, *state.messages]
+            [
+                {"role": "system", "content": system_message}, 
+                HumanMessage(content=f"My personal structured mandate info:{user_mandate}"),
+                *state.messages,
+            ]
         ),
     )
 
-    result: Dict[str, Any] = {"messages": [response]}
+    # State Update with LLM response
+    result: Dict[str, Any] = {}
 
-    if isinstance(response.content, str) and "EXTRACTION COMPLETE" in response.content:
-        # Try to extract the JSON data
-        try:
-            # Find the JSON block between ```json and ```
-            json_match = re.search(r"```json\s*(.*?)\s*```", response.content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-                extracted_data = json.loads(json_str)
+    # Check if any tools were called by LLM
+    if response.tool_calls:
+        tool_call = response.tool_calls[0]
 
-                if "tickers_world" in extracted_data:
-                    result["tickers_world"] = extracted_data["tickers_world"]
-                    result["next"] = "views_analyst"
-
-        except (json.JSONDecodeError, AttributeError):
-            # If JSON parsing fails, just continue without updating state
-            pass
-
+        if tool_call["name"] == "extract_tickers_data":
+            # Tickers identified - update state and route to views analyst
+            # Note: don't add tool-call message
+            tickers = tool_call["args"]
+            result.update(tickers)
+            result["next"] = "views_analyst"
+            return result
+        elif tool_call["name"] == "search":
+            # Search tool called - continue to tools node
+            result["messages"] = [response]
+            result["next"] = "tools_finder"
+            return result
+    
+    # No tools called - continue conversation with user
+    result["messages"] = [response]
+    result["next"] = "human_input_finder"
     return result
 
 
 async def views_analyst(state: State) -> Dict[str, Any]:
     """Call the LLM with the views analyst prompt to generate data structures for Black-Litterman model.
 
-    This function prepares the prompt using the VIEWS_ANALYST_SYSTEM_PROMPT,
-    initializes the reasoning model, and processes the response.
-    If the model's response contains data in JSON format, it will be parsed
-    and added to the state.
+    This function first checks if the last message is a ToolMessage from the 'extract_bl_views' tool.
+    If so, it returns a success message without calling the LLM.
+    Otherwise, it prepares the prompt using the VIEWS_ANALYST_SYSTEM_PROMPT,
+    initializes the reasoning model.
 
     Args:
         state (State): The current state of the conversation.
@@ -249,15 +222,31 @@ async def views_analyst(state: State) -> Dict[str, Any]:
     Returns:
         dict: A dictionary containing the model's response message.
     """
-    # Create a reasoning model
-    reasoning = {
-        "effort": "medium",  # 'low', 'medium', or 'high'
-        "summary": None,     # 'detailed', 'auto', or None
-    }
+    # Check if the last message is a ToolMessage from extract_bl_views tool
+    if state.messages and len(state.messages) > 0:
+        last_message = state.messages[-1]
+        
+        if (isinstance(last_message, ToolMessage) and 
+            hasattr(last_message, 'name') and 
+            last_message.name == "extract_bl_views" and
+            hasattr(last_message, 'tool_call_id') and 
+            last_message.tool_call_id):  # Ensure it has a valid tool_call_id
+
+            if isinstance(last_message.content, str):
+                tool_output = json.loads(last_message.content)
+            else:
+                tool_output = last_message.content
+
+            return {
+                "messages": [AIMessage(content="Black-Litterman inputs generated and extracted successfully.")],
+                "bl_views": tool_output["bl_views"],
+                "next": "optimization"
+            }
+    
+    # Create reasoning model
     reason_model = ChatOpenAI(
-        model="o3-mini",
-        use_responses_api=True,
-        model_kwargs={"reasoning": reasoning}
+        model="o3-mini",            # 'o4-mini'
+        reasoning_effort="medium",  # 'low', 'medium', or 'high'
     )
 
     # Initialize the model with tool binding
@@ -274,12 +263,11 @@ async def views_analyst(state: State) -> Dict[str, Any]:
         await model.ainvoke(
             [
                 SystemMessage(content=system_message),
-                HumanMessage(content=f"List of asset tickers: {state.tickers_world}"),
+                HumanMessage(content=f"List of asset tickers: {state.tickers}"),
                 *state.messages,
             ]
         ),
     )
-    # Note: Only works with `messages` (not State.tickers)
 
     # Handle the case when it's the last step and the model still wants to use a tool
     if state.is_last_step and response.tool_calls:
@@ -292,14 +280,9 @@ async def views_analyst(state: State) -> Dict[str, Any]:
             ]
         }
 
-    # Prepare the result with the response message
+    # State Update with LLM response
     result: Dict[str, Any] = {"messages": [response]}
-    
-    # Check if the response contains the extraction completion marker
-    if isinstance(response.content, str) and "EXTRACTION COMPLETE".lower() in response.content.lower():        
-        extracted_data = extract_json(response.content)
-        result["views_created"] = extracted_data if extracted_data else {"error": "missing generated views"}
-        
+
     return result
 
 
