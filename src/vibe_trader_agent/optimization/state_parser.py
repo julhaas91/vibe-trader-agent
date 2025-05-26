@@ -1,13 +1,15 @@
-import numpy as np
-from typing import Dict, Any, List
-import re
+"""Parse data collected in Agent State to the parameters expected by PortfolioOptimizer."""
+
 import os
+import re
 import time
+from typing import Any, Dict, List
+
+import numpy as np
 
 
 def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs) -> Dict[str, Any]:
-    """
-    Convert State object to PortfolioOptimizer parameters.
+    """Convert State object to PortfolioOptimizer parameters.
     
     Args:
         state: State dictionary with user profile and investment data

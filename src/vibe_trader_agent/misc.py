@@ -8,6 +8,7 @@ from typing import Any, Dict, Union
 
 from vibe_trader_agent.state import State
 
+
 def get_current_date() -> str:
     """Get the current date in UTC timezone.
     
@@ -38,8 +39,7 @@ def extract_json(text: str) -> Union[Dict[Any, Any], Any]:
 
 
 def save_state_to_json(state: State, filepath: str = "./user_state.json") -> None:
-    """
-    Save State object to JSON file.
+    """Save State object to JSON file.
     
     Args:
         state: State dataclass instance
@@ -60,5 +60,5 @@ def save_state_to_json(state: State, filepath: str = "./user_state.json") -> Non
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(state_dict, f, indent=2, ensure_ascii=False, default=str)
             
-    except Exception as e:
+    except Exception:
         pass

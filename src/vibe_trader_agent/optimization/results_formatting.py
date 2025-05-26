@@ -1,18 +1,17 @@
-"""
-Portfolio Optimization Results Formatting Module
+"""Portfolio Optimization Results Formatting Module.
 
 This module provides formatters to convert optimization results into human-readable
 and LLM-friendly formats. It handles the presentation layer for optimization outputs,
 making results easy to interpret and explain.
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
+
 import numpy as np
 
 
 def format_results_for_llm(results: Dict[str, Any]) -> str:
-    """
-    Format optimization results for LLM processing and natural language explanation.
+    """Format optimization results for LLM processing and natural language explanation.
     
     Takes raw optimization results and converts them into a structured, readable format
     that's optimized for LLM interpretation and user communication.
@@ -192,14 +191,14 @@ def _has_valid_bl_views(bl_views: Dict[str, Any]) -> bool:
 
 def _extract_scalar_value(value: Any) -> float:
     """Safely extract a scalar numeric value from various input types."""
-    if isinstance(value, (int, float, np.integer, np.floating)):
+    if isinstance(value, int | float | np.integer | np.floating):
         return float(value)
     elif isinstance(value, complex):
         if value.imag == 0:
             return float(value.real)
         else:
             raise ValueError("Cannot convert complex number with non-zero imaginary part")
-    elif isinstance(value, (np.ndarray, list, tuple)):
+    elif isinstance(value, np.ndarray | list | tuple):
         if np.size(value) == 1:
             return float(np.asarray(value).item())
         else:
@@ -223,8 +222,7 @@ def _safe_format_percentage(value: Any) -> str:
 
 # Alternative formatters for extensibility
 def format_results_for_json(results: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Format results as a clean JSON structure for API responses.
+    """Format results as a clean JSON structure for API responses.
     
     Args:
         results: Raw optimization results
@@ -238,8 +236,7 @@ def format_results_for_json(results: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def format_results_for_report(results: Dict[str, Any]) -> str:
-    """
-    Format results as a detailed report for documentation.
+    """Format results as a detailed report for documentation.
     
     Args:
         results: Raw optimization results

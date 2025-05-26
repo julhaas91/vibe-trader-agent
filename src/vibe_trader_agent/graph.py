@@ -10,9 +10,9 @@ from vibe_trader_agent.nodes import (
     asset_finder,
     financial_advisor,
     human_input_node,
+    optimizer,
     profile_builder,
     views_analyst,
-    optimizer,
 )
 from vibe_trader_agent.routers import (
     route_asset_finder_output,

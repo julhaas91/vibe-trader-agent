@@ -1,18 +1,17 @@
-"""
-Portfolio Optimizer Parameter Validation Module
+"""Portfolio Optimizer Parameter Validation Module.
 
 This module provides comprehensive validation for PortfolioOptimizer parameters to ensure
 they are correct, consistent, and feasible before optimization begins. Early validation
 prevents runtime errors and helps identify configuration issues.
 """
 
+from typing import Any, Dict
+
 import numpy as np
-from typing import Dict, Any
 
 
 def validate_optimizer_params(params: Dict[str, Any]) -> bool:
-    """
-    Validate PortfolioOptimizer parameters for correctness and consistency.
+    """Validate PortfolioOptimizer parameters for correctness and consistency.
     
     Args:
         params: Dictionary of parameters for PortfolioOptimizer
@@ -24,7 +23,6 @@ def validate_optimizer_params(params: Dict[str, Any]) -> bool:
         ValueError: If any validation fails with descriptive error message
         TypeError: If parameter types are incorrect
     """
-    
     # === BASIC TYPE AND EXISTENCE CHECKS ===
     _validate_required_params(params)
     

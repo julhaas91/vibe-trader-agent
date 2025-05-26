@@ -1,19 +1,20 @@
-import time
+"""Portfolio Optimization using Black-Litterman model and Monte Carlo simulation."""
+
+import json
+import logging
 import os
-import datetime
+import time
+
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import logging
-import matplotlib.pyplot as plt
+from pypfopt import black_litterman, expected_returns, risk_models
 from scipy.optimize import differential_evolution
-from pypfopt import expected_returns, risk_models, black_litterman
-import json
+
 
 class PortfolioOptimizer:
-    """
-    A class for optimizing portfolio allocation using Black-Litterman model and Monte Carlo simulation.
-    """
+    """A class for optimizing portfolio allocation using Black-Litterman model and Monte Carlo simulation."""
     
     def __init__(self, 
                  tickers=["SPY", "QQQ", "TLT", "GLD", "BIL"],
@@ -39,8 +40,7 @@ class PortfolioOptimizer:
                  bl_view_matrix_P=None,
                  bl_view_vector_Q=None,
                  bl_view_uncertainty_omega=None):
-        """
-        Initialize the portfolio optimizer with configuration parameters.
+        """Initialize the portfolio optimizer with configuration parameters.
         
         Args:
             tickers (list): List of ticker symbols
@@ -112,7 +112,7 @@ class PortfolioOptimizer:
         self.MAX_ITERATIONS = max_iterations
 
     def _setup_logging(self):
-        """Setup logging configuration."""
+        """Set up logging configuration."""
         # Only create directories and files if output_dir is provided
         if self.output_dir is not None:
             timestamp = time.strftime('%Y%m%d_%H%M%S')
@@ -222,7 +222,7 @@ class PortfolioOptimizer:
         return obj
 
     def de_callback(self, xk, convergence):
-        """Callback function for differential evolution."""
+        """Execute callback for differential evolution iteration."""
         self.iteration += 1
         w = np.clip(xk, 0, 1)
         w /= w.sum()
@@ -233,9 +233,9 @@ class PortfolioOptimizer:
         return False
 
     def _setup_black_litterman(self, prices):
-        """Setup Black-Litterman model parameters."""
+        """Set up Black-Litterman model parameters."""
         # Calculate historical parameters
-        mu_hist = expected_returns.mean_historical_return(prices)
+        _mu_hist = expected_returns.mean_historical_return(prices)
         sigma_hist = risk_models.sample_cov(prices)
         caps = pd.Series({t: yf.Ticker(t).info.get("marketCap", np.nan) for t in self.TICKERS})
         cap_wts = caps.fillna(caps.median()) / caps.sum()
@@ -277,8 +277,7 @@ class PortfolioOptimizer:
         return bl.bl_returns(), bl.bl_cov()
 
     def optimize(self, run_id=None, save_outputs=True):
-        """
-        Run the portfolio optimization process.
+        """Run the portfolio optimization process.
         
         Args:
             run_id (str): Unique identifier for this run (if None, will be generated)
@@ -444,15 +443,15 @@ class PortfolioOptimizer:
         )
         self.logger.info(summary)
         
-        print("=== Final Results ===")
-        print(f"Success probability:       {p_opt:.4f}")
-        print(f"Average final value:       {avg_final:.2f}")
-        print(f"Average drawdown:          {dd_opt:.4f}")
-        print(f"Average worst-day drop:    {wd_opt:.4f}")
-        print(f"Ex-ante volatility:        {vol_opt:.4f}")
-        print(f"Cash allocation:           {cash_alloc:.4f}")
-        print(f"Optimization time (s):     {elapsed:.2f}")
+        self.logger.info("=== Final Results ===")
+        self.logger.info(f"Success probability:       {p_opt:.4f}")
+        self.logger.info(f"Average final value:       {avg_final:.2f}")
+        self.logger.info(f"Average drawdown:          {dd_opt:.4f}")
+        self.logger.info(f"Average worst-day drop:    {wd_opt:.4f}")
+        self.logger.info(f"Ex-ante volatility:        {vol_opt:.4f}")
+        self.logger.info(f"Cash allocation:           {cash_alloc:.4f}")
+        self.logger.info(f"Optimization time (s):     {elapsed:.2f}")
         if self.output_dir is not None:
-            print(f"Results directory:         {self.output_dir}\n")
+            self.logger.info(f"Results directory:         {self.output_dir}")
         else:
-            print("No files saved (output_dir=None)\n")
+            self.logger.info("No files saved (output_dir=None)")

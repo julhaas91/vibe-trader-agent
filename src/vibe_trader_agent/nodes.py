@@ -1,9 +1,9 @@
 """Node module for the Vibe Trader Agent."""
 
 import json
+from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any, Dict, cast
-from dataclasses import asdict
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
@@ -11,6 +11,10 @@ from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.misc import get_current_date
+from vibe_trader_agent.optimization.params_validation import validate_optimizer_params
+from vibe_trader_agent.optimization.portfolio_optimizer import PortfolioOptimizer
+from vibe_trader_agent.optimization.results_formatting import format_results_for_llm
+from vibe_trader_agent.optimization.state_parser import parse_state_to_optimizer_params
 from vibe_trader_agent.prompts import (
     ASSET_FINDER_SYSTEM_PROMPT,
     FINANCIAL_ADVISOR_SYSTEM_PROMPT,
@@ -25,11 +29,6 @@ from vibe_trader_agent.tools import (
     views_analyst_tools,
 )
 from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
-
-from vibe_trader_agent.optimization.portfolio_optimizer import PortfolioOptimizer
-from vibe_trader_agent.optimization.state_parser import parse_state_to_optimizer_params
-from vibe_trader_agent.optimization.params_validation import validate_optimizer_params
-from vibe_trader_agent.optimization.results_formatting import format_results_for_llm
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
@@ -320,7 +319,6 @@ async def optimizer(state: State) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: LLM-friendly output of the optimization process.
     """
-
     # Debugging
     # from vibe_trader_agent.misc import save_state_to_json
     # save_state_to_json(state, "./user_state.json")
@@ -339,7 +337,7 @@ async def optimizer(state: State) -> Dict[str, Any]:
 
     # Validate params
     try:
-        valid_params = validate_optimizer_params(params)
+        validate_optimizer_params(params)
     except Exception as e:
         return {
             "messages": [AIMessage(content=f"Parameter validation failed: {str(e)}")],
