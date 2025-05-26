@@ -93,7 +93,7 @@ class PortfolioOptimizer:
         self.LAMBDA_CASH = lambda_cash
         
         # Optimization tracking
-        self.history = {'generation': [], 'objective': []}
+        self.history: Dict[str, List[Any]] = {'generation': [], 'objective': []}
         self.iteration = 0
         
         # Setup output directory and logging
@@ -185,7 +185,7 @@ class PortfolioOptimizer:
         worst = -np.min(daily_ret, axis=1)
         avg_wd = np.mean(worst)
         avg_final = np.mean(V[:, -1])
-        return prob, avg_dd, avg_wd, avg_final, V[:, -1]
+        return float(prob), float(avg_dd), float(avg_wd), float(avg_final), V[:, -1]
 
     def simulate_metrics(self, w: NDArray[Any], mu: pd.Series, Sigma: pd.DataFrame, 
                         V0: float, T_years: int, freq: int, n_sims: int) -> Tuple[float, float, float, float, NDArray[Any]]:
@@ -298,6 +298,10 @@ class PortfolioOptimizer:
         prices = yf.download(self.TICKERS, start="2010-01-01", auto_adjust=True)["Close"].dropna()
         self.posterior_mu, self.posterior_sigma = self._setup_black_litterman(prices)
 
+        # Assert posterior_mu and posterior_sigma are set
+        assert self.posterior_mu is not None
+        assert self.posterior_sigma is not None
+
         # 2) Optimization
         bounds = [(0, self.UPPER_BOUNDS) for _ in self.TICKERS]
         t0 = time.perf_counter()
@@ -375,6 +379,9 @@ class PortfolioOptimizer:
 
     def _create_visualization(self, run_id: str, w_opt: NDArray[Any], finals: NDArray[Any], prices: pd.DataFrame) -> None:
         """Create all visualization plots."""
+        if self.output_dir is None:
+            return
+
         # Objective plot
         plt.figure()
         plt.plot(self.history['generation'], self.history['objective'], marker='o')
