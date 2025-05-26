@@ -6,7 +6,6 @@ and LLM-friendly formats. It handles the presentation layer for optimization out
 making results easy to interpret and explain.
 """
 
-import numbers
 from typing import Dict, Any, List, Optional
 import numpy as np
 
@@ -181,24 +180,36 @@ def _format_optimization_details(metrics: Dict[str, Any]) -> str:
 
 def _has_valid_bl_views(bl_views: Dict[str, Any]) -> bool:
     """Check if Black-Litterman views are present and valid."""
+    if not bl_views:
+        return False
+    
     required_keys = ["P", "Q", "omega"]
-    return (bl_views and 
-            all(key in bl_views for key in required_keys) and
+    return (all(key in bl_views for key in required_keys) and
             bl_views["P"] is not None and 
-            bl_views["Q"] is not None)
+            bl_views["Q"] is not None and
+            bl_views["omega"] is not None)
 
 
 def _extract_scalar_value(value: Any) -> float:
     """Safely extract a scalar numeric value from various input types."""
-    if isinstance(value, numbers.Number):
+    if isinstance(value, (int, float, np.integer, np.floating)):
         return float(value)
+    elif isinstance(value, complex):
+        if value.imag == 0:
+            return float(value.real)
+        else:
+            raise ValueError("Cannot convert complex number with non-zero imaginary part")
     elif isinstance(value, (np.ndarray, list, tuple)):
         if np.size(value) == 1:
             return float(np.asarray(value).item())
         else:
             raise ValueError(f"Expected scalar, got array of size {np.size(value)}")
     else:
-        return float(value)  # Let it raise if conversion fails
+        # Try direct conversion as last resort
+        try:
+            return float(value)
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Cannot convert {type(value).__name__} to float: {e}")
 
 
 def _safe_format_percentage(value: Any) -> str:
