@@ -1,5 +1,5 @@
 import numpy as np
-from typing import Dict, Any
+from typing import Dict, Any, List
 import re
 import os
 import time
@@ -16,8 +16,12 @@ def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs) -> Dict[str
     Returns:
         Parameters dict ready for PortfolioOptimizer(**params)
     """
-    # Parse Black-Litterman views first to get tickers
-    bl_params = _parse_bl_views(state.get("bl_views", {}))
+    # Determine cash ticker first
+    potential_tickers = state.get('tickers', [])
+    cash_ticker = _find_cash_ticker(potential_tickers)
+    
+    # Parse Black-Litterman views and ensure cash ticker is included
+    bl_params = _parse_bl_views(state.get("bl_views", {}), cash_ticker)
     
     # Use BL tickers if available, otherwise use state tickers, with fallback
     tickers = bl_params.get('tickers') or state.get('tickers')
@@ -35,8 +39,7 @@ def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs) -> Dict[str
     # === CASH PARAMETERS ===
     cash_reserve = state.get("cash_reserve", 0.0)
     cash_min = max(0.02, cash_reserve / start_portfolio) if cash_reserve > 0 else 0.05
-    cash_ticker = "BIL"
-        
+    
     # === ALLOCATION PARAMETERS ===
     upper_bounds = min(0.8, _safe_percentage_to_decimal(state.get("max_single_asset_allocation_percentage", 50.0), default=0.5))
     
@@ -117,8 +120,8 @@ def _parse_planning_horizon(horizon_str: str) -> int:
     return max(1, value)
 
 
-def _parse_bl_views(bl_views: Dict[str, Any]) -> Dict[str, Any]:
-    """Parse Black-Litterman views with robust error handling."""
+def _parse_bl_views(bl_views: Dict[str, Any], cash_ticker: str) -> Dict[str, Any]:
+    """Parse Black-Litterman views with robust error handling and cash ticker integration."""
     default_return = {
         'bl_view_matrix_P': None,
         'bl_view_vector_Q': None,
@@ -155,12 +158,30 @@ def _parse_bl_views(bl_views: Dict[str, Any]) -> Dict[str, Any]:
         if len(Q) != num_views or len(sigma_vector) != num_views or len(tickers) != num_assets:
             return default_return
         
-        return {
-            'bl_view_matrix_P': P,
-            'bl_view_vector_Q': Q,
-            'bl_view_uncertainty_omega': omega,
-            'tickers': tickers
-        }
+        # Add cash ticker if not present
+        if cash_ticker not in tickers:
+            # Add cash ticker to the list
+            updated_tickers = tickers + [cash_ticker]
+            
+            # Add a column of zeros to P matrix for the cash ticker
+            # Shape: (num_views, num_assets + 1)
+            cash_column = np.zeros((num_views, 1))
+            updated_P = np.hstack([P, cash_column])
+            
+            return {
+                'bl_view_matrix_P': updated_P,
+                'bl_view_vector_Q': Q,
+                'bl_view_uncertainty_omega': omega,
+                'tickers': updated_tickers
+            }
+        else:
+            # Cash ticker already present, return as-is
+            return {
+                'bl_view_matrix_P': P,
+                'bl_view_vector_Q': Q,
+                'bl_view_uncertainty_omega': omega,
+                'tickers': tickers
+            }
         
     except Exception:
         # Silent fallback on any error
@@ -185,6 +206,25 @@ def _calculate_vol_limit(max_dd: float, worst_day: float) -> float:
     elif max_dd <= 0.35 and worst_day <= 0.18:
         return 0.25  # Aggressive
     return 0.30  # Very aggressive
+
+
+def _find_cash_ticker(tickers: List[str]) -> str:
+    """Find best cash ticker from list."""
+    cash_options = ['BIL', 'SHY', 'VMOT', 'MINT', 'SGOV', 'JPST']
+    
+    # Try preferred cash tickers first
+    for option in cash_options:
+        if option in tickers:
+            return option
+    
+    # Look for cash-like patterns
+    for ticker in tickers:
+        ticker_upper = ticker.upper()
+        if any(pattern in ticker_upper for pattern in ['BIL', 'CASH', 'SHORT', 'MONEY', 'TREASURY']):
+            return ticker
+    
+    # Fallback to BIL (standard default)
+    return 'BIL'
 
 
 def _create_output_directory() -> str:
