@@ -1,3 +1,17 @@
+# Optimization outputs
+/optimization_output_*
+**/optimization_output/
+
+output/
+optimization/*_output/
+optimization/test_output/
+optimization/simple_test_output/
+optimization/dashboard_output/
+*.log
+*.png
+*.pdf
+*.html
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -10,6 +10,7 @@ from vibe_trader_agent.nodes import (
     asset_finder,
     financial_advisor,
     human_input_node,
+    optimizer,
     profile_builder,
     views_analyst,
 )
@@ -54,7 +55,7 @@ builder.add_node("tools_finder", ToolNode(asset_finder_tools))
 builder.add_node("views_analyst", views_analyst)
 builder.add_node("tools_analyst", ToolNode(views_analyst_tools))
 
-builder.add_node("optimization", dummy_node)
+builder.add_node("optimizer", optimizer)
 
 
 # Define the flow
@@ -95,7 +96,7 @@ builder.add_conditional_edges(
 builder.add_edge("tools_analyst", "views_analyst")
 
 # //
-builder.add_edge("optimization", END)
+builder.add_edge("optimizer", END)
 
 
 # Compile the builder into an executable graph
