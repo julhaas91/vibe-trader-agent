@@ -24,6 +24,9 @@ dependencies = [
     "pyportfolioopt>=1.5.6",
     "reportlab>=4.4.1",
     "seaborn>=0.13.2",
+    "google-cloud-storage>=3.1.0",
+    "notebook>=7.4.2",
+    "reportlab>=4.4.1",
 ]
 
 

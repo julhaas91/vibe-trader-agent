@@ -47,3 +47,49 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 https://github.com/tevslin/meeting-reporter/blob/main/mm_agent.py
 
+## Utils
+### Google storage
+Set google environmental variables for google, see example in .env.example
+
+## How to use google cloud storage
+```python 
+from utils import init_storage_client, upload_pdf
+import os
+from dotenv import load_dotenv
+load_dotenv('../../.env')
+
+from io import BytesIO
+from reportlab.pdfgen import canvas
+
+
+def generate_pdf() -> bytes:
+    """Generate a dummy PDF for example purposes."""
+    buffer = BytesIO()
+    pdf = canvas.Canvas(buffer)
+    pdf.drawString(100, 100, "Generated PDF Content")
+    pdf.save()
+    pdf_bytes = buffer.getvalue()
+    buffer.close()
+    return pdf_bytes
+
+# Initialize client
+project_id = os.getenv('GOOGLE_CLOUD_PROJECT')
+if not project_id:
+    raise ValueError("GOOGLE_CLOUD_PROJECT environment variable is not set")
+
+gcs_client = init_storage_client(project_id=project_id)
+content_pdf_bytes = generate_pdf()
+
+# Upload with signed URL (valid for 7 days)
+url = upload_pdf(
+    client=gcs_client,
+    bucket='vibe-trader-reports-dev',
+    destination="test_pdf.pdf",
+    content=content_pdf_bytes,
+    make_public=True,
+    expiration_days=7
+)
+print(f"File uploaded successfully. Access URL: {url}")
+```
+Using this example u can upload any object converting into bytes stream.
+If you specify make_public - as output you will get link to uploaded file.
