@@ -55,7 +55,7 @@ def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs) -> Dict[str
     lambda_cash = 1000
     
     # === OUTPUT PARAMETERS ===
-    output_dir = _create_output_directory()
+    output_dir = None # _create_output_directory()
     log_prefix = "optimization"
     
     # === BUILD PARAMETERS DICT ===

@@ -59,7 +59,7 @@ class PortfolioOptimizer:
             lambda_drawdown (float): Penalty strength for drawdown constraint
             lambda_worst_day (float): Penalty strength for worst-day constraint
             lambda_cash (float): Penalty strength for cash constraint
-            output_dir (str): Directory to save results (if None, will be created)
+            output_dir (str): Directory to save results (if None, no files will be saved)
             log_prefix (str): Prefix for log files and output directory
             max_iterations (int): Maximum number of iterations for optimization
             bl_view_matrix_P (np.ndarray): View matrix P in Black-Litterman model
@@ -113,18 +113,18 @@ class PortfolioOptimizer:
 
     def _setup_logging(self):
         """Setup logging configuration."""
-        if self.output_dir is None:
+        # Only create directories and files if output_dir is provided
+        if self.output_dir is not None:
             timestamp = time.strftime('%Y%m%d_%H%M%S')
-            self.output_dir = os.path.join(
-                os.path.dirname(__file__),
-                f"{self.log_prefix}_{timestamp}_T{int(self.TARGET_PORTFOLIO)}_DD{int(self.MAX_DRAWDOWN*100)}"
-                f"_WD{int(self.WORST_DAY_LIMIT*100)}_VOL{int(self.SIGMA_MAX*100)}"
-                f"_CASH{int(self.CASH_MIN*100)}"
-            )
-        os.makedirs(self.output_dir, exist_ok=True)
-
-        # Always use log_prefix for the log file name
-        log_file = os.path.join(self.output_dir, f"{self.log_prefix}.log")
+            if not self.output_dir:  # Handle empty string case
+                self.output_dir = os.path.join(
+                    os.path.dirname(__file__),
+                    f"{self.log_prefix}_{timestamp}_T{int(self.TARGET_PORTFOLIO)}_DD{int(self.MAX_DRAWDOWN*100)}"
+                    f"_WD{int(self.WORST_DAY_LIMIT*100)}_VOL{int(self.SIGMA_MAX*100)}"
+                    f"_CASH{int(self.CASH_MIN*100)}"
+                )
+            os.makedirs(self.output_dir, exist_ok=True)
+            log_file = os.path.join(self.output_dir, f"{self.log_prefix}.log")
 
         # Configure root logger
         logging.basicConfig(
@@ -133,22 +133,26 @@ class PortfolioOptimizer:
             datefmt='%Y-%m-%d %H:%M:%S'
         )
 
-        # Create file handler
-        file_handler = logging.FileHandler(log_file)
-        file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
-
-        # Create console handler
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
-
         # Setup logger
         self.logger = logging.getLogger(f"{self.log_prefix}_{id(self)}")
         self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(file_handler)
+        
+        # Always add console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
         self.logger.addHandler(console_handler)
+        
+        # Only add file handler if output_dir is provided
+        if self.output_dir is not None:
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(message)s'))
+            self.logger.addHandler(file_handler)
 
         self.logger.info("=== Starting new optimization run ===")
-        self.logger.info(f"Output directory: {self.output_dir}")
+        if self.output_dir is not None:
+            self.logger.info(f"Output directory: {self.output_dir}")
+        else:
+            self.logger.info("No output directory specified - files will not be saved")
         self.logger.info(f"Configuration: T={self.TARGET_PORTFOLIO}, DD={self.MAX_DRAWDOWN}, "
                         f"WD={self.WORST_DAY_LIMIT}, VOL={self.SIGMA_MAX}, CASH={self.CASH_MIN}")
 
@@ -316,8 +320,8 @@ class PortfolioOptimizer:
         # 4) Log & Print Summary
         self._log_results(run_id, elapsed, p_opt, avg_final, dd_opt, wd_opt, vol_opt, cash_alloc)
 
-        # 5) Create visualizations if save_outputs is True
-        if save_outputs:
+        # 5) Create visualizations and save JSON only if output_dir is provided and save_outputs is True
+        if self.output_dir is not None and save_outputs:
             self._create_visualization(run_id, w_opt, finals, prices)
 
         # 6) Prepare results dictionary
@@ -357,8 +361,8 @@ class PortfolioOptimizer:
             }
         }
 
-        # Save results as JSON if save_outputs is True
-        if save_outputs:
+        # Save results as JSON only if output_dir is provided and save_outputs is True
+        if self.output_dir is not None and save_outputs:
             json_path = os.path.join(self.output_dir, f"{self.log_prefix}_results.json")
             with open(json_path, 'w') as f:
                 json.dump(results_dict, f, indent=2)
@@ -448,4 +452,7 @@ class PortfolioOptimizer:
         print(f"Ex-ante volatility:        {vol_opt:.4f}")
         print(f"Cash allocation:           {cash_alloc:.4f}")
         print(f"Optimization time (s):     {elapsed:.2f}")
-        print(f"Results directory:         {self.output_dir}\n") 
+        if self.output_dir is not None:
+            print(f"Results directory:         {self.output_dir}\n")
+        else:
+            print("No files saved (output_dir=None)\n")
