@@ -8,6 +8,7 @@ making results easy to interpret and explain.
 from typing import Any, Dict, List, Optional
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def format_results_for_llm(results: Dict[str, Any]) -> str:
@@ -134,7 +135,8 @@ def _format_bl_views(inputs: Dict[str, Any]) -> str:
         return "3. Black-Litterman Views: [Error - Failed to format views]"
 
 
-def _format_single_view(p_row: np.ndarray, q_value: Any, omega: Optional[np.ndarray], 
+def _format_single_view(p_row: NDArray[Any], q_value: Any, 
+                       omega: Optional[NDArray[Any]], 
                        view_idx: int, tickers: List[str]) -> List[str]:
     """Format a single Black-Litterman view."""
     try:

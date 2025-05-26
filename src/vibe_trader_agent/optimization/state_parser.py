@@ -8,7 +8,7 @@ from typing import Any, Dict, List
 import numpy as np
 
 
-def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs) -> Dict[str, Any]:
+def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs: Any) -> Dict[str, Any]:
     """Convert State object to PortfolioOptimizer parameters.
     
     Args:

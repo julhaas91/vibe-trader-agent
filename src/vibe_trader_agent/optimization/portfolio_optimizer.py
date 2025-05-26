@@ -4,67 +4,69 @@ import json
 import logging
 import os
 import time
+from typing import Any, Dict, List, Optional, Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
-import yfinance as yf
-from pypfopt import black_litterman, expected_returns, risk_models
-from scipy.optimize import differential_evolution
+import pandas as pd  # type: ignore
+import yfinance as yf  # type: ignore
+from numpy.typing import NDArray
+from pypfopt import black_litterman, expected_returns, risk_models  # type: ignore
+from scipy.optimize import differential_evolution  # type: ignore
 
 
 class PortfolioOptimizer:
     """A class for optimizing portfolio allocation using Black-Litterman model and Monte Carlo simulation."""
     
     def __init__(self, 
-                 tickers=["SPY", "QQQ", "TLT", "GLD", "BIL"],
-                 horizon_years=10,
-                 start_portfolio=100_000,
-                 target_portfolio=200_000,
-                 max_drawdown=0.25,
-                 worst_day_limit=0.10,
-                 sigma_max=0.20,
-                 cash_min=0.05,
-                 upper_bounds=0.5,
-                 cash_ticker="BIL",
-                 scenarios=10_000,
-                 mc_freq=12,
-                 lambda_sigma=100,
-                 lambda_drawdown=500,
-                 lambda_worst_day=300,
-                 lambda_cash=1000,
-                 output_dir=None,
-                 log_prefix="optimization",
-                 max_iterations=100,
+                 tickers: List[str] = ["SPY", "QQQ", "TLT", "GLD", "BIL"],
+                 horizon_years: int = 10,
+                 start_portfolio: float = 100_000,
+                 target_portfolio: float = 200_000,
+                 max_drawdown: float = 0.25,
+                 worst_day_limit: float = 0.10,
+                 sigma_max: float = 0.20,
+                 cash_min: float = 0.05,
+                 upper_bounds: float = 0.5,
+                 cash_ticker: str = "BIL",
+                 scenarios: int = 10_000,
+                 mc_freq: int = 12,
+                 lambda_sigma: float = 100,
+                 lambda_drawdown: float = 500,
+                 lambda_worst_day: float = 300,
+                 lambda_cash: float = 1000,
+                 output_dir: Optional[str] = None,
+                 log_prefix: str = "optimization",
+                 max_iterations: int = 100,
                  # Black-Litterman view parameters
-                 bl_view_matrix_P=None,
-                 bl_view_vector_Q=None,
-                 bl_view_uncertainty_omega=None):
+                 bl_view_matrix_P: Optional[NDArray[Any]] = None,
+                 bl_view_vector_Q: Optional[NDArray[Any]] = None,
+                 bl_view_uncertainty_omega: Optional[NDArray[Any]] = None) -> None:
         """Initialize the portfolio optimizer with configuration parameters.
         
         Args:
-            tickers (list): List of ticker symbols
-            horizon_years (int): Investment horizon in years
-            start_portfolio (float): Initial portfolio value
-            target_portfolio (float): Target portfolio value
-            max_drawdown (float): Maximum allowed drawdown
-            worst_day_limit (float): Maximum allowed single-day drop
-            sigma_max (float): Maximum allowed annual volatility
-            cash_min (float): Minimum cash allocation
-            upper_bounds (float): Maximum weight per asset
-            cash_ticker (str): Ticker symbol for cash equivalent
-            scenarios (int): Number of Monte Carlo scenarios
-            mc_freq (int): Rebalancing frequency per year
-            lambda_sigma (float): Penalty strength for volatility constraint
-            lambda_drawdown (float): Penalty strength for drawdown constraint
-            lambda_worst_day (float): Penalty strength for worst-day constraint
-            lambda_cash (float): Penalty strength for cash constraint
-            output_dir (str): Directory to save results (if None, no files will be saved)
-            log_prefix (str): Prefix for log files and output directory
-            max_iterations (int): Maximum number of iterations for optimization
-            bl_view_matrix_P (np.ndarray): View matrix P in Black-Litterman model
-            bl_view_vector_Q (np.ndarray): View vector Q in Black-Litterman model
-            bl_view_uncertainty_omega (np.ndarray): View uncertainty matrix Omega
+            tickers: List of ticker symbols
+            horizon_years: Investment horizon in years
+            start_portfolio: Initial portfolio value
+            target_portfolio: Target portfolio value
+            max_drawdown: Maximum allowed drawdown
+            worst_day_limit: Maximum allowed single-day drop
+            sigma_max: Maximum allowed annual volatility
+            cash_min: Minimum cash allocation
+            upper_bounds: Maximum weight per asset
+            cash_ticker: Ticker symbol for cash equivalent
+            scenarios: Number of Monte Carlo scenarios
+            mc_freq: Rebalancing frequency per year
+            lambda_sigma: Penalty strength for volatility constraint
+            lambda_drawdown: Penalty strength for drawdown constraint
+            lambda_worst_day: Penalty strength for worst-day constraint
+            lambda_cash: Penalty strength for cash constraint
+            output_dir: Directory to save results (if None, no files will be saved)
+            log_prefix: Prefix for log files and output directory
+            max_iterations: Maximum number of iterations for optimization
+            bl_view_matrix_P: View matrix P in Black-Litterman model
+            bl_view_vector_Q: View vector Q in Black-Litterman model
+            bl_view_uncertainty_omega: View uncertainty matrix Omega
         """
         # Portfolio configuration
         self.TICKERS = tickers
@@ -97,6 +99,7 @@ class PortfolioOptimizer:
         # Setup output directory and logging
         self.output_dir = output_dir
         self.log_prefix = log_prefix
+        self.logger: logging.Logger
         self._setup_logging()
         
         # Black-Litterman view parameters
@@ -111,7 +114,7 @@ class PortfolioOptimizer:
         # Add this to the initialization
         self.MAX_ITERATIONS = max_iterations
 
-    def _setup_logging(self):
+    def _setup_logging(self) -> None:
         """Set up logging configuration."""
         # Only create directories and files if output_dir is provided
         if self.output_dir is not None:
@@ -156,7 +159,8 @@ class PortfolioOptimizer:
         self.logger.info(f"Configuration: T={self.TARGET_PORTFOLIO}, DD={self.MAX_DRAWDOWN}, "
                         f"WD={self.WORST_DAY_LIMIT}, VOL={self.SIGMA_MAX}, CASH={self.CASH_MIN}")
 
-    def _simulate_portfolio_paths(self, w, mu, Sigma, V0, T_years, freq, n_sims):
+    def _simulate_portfolio_paths(self, w: NDArray[Any], mu: pd.Series, Sigma: pd.DataFrame, 
+                                 V0: float, T_years: int, freq: int, n_sims: int) -> NDArray[Any]:
         """Simulate portfolio paths using Monte Carlo method."""
         dt = 1 / freq
         n_steps = int(T_years * freq)
@@ -171,7 +175,7 @@ class PortfolioOptimizer:
             
         return V
 
-    def _calculate_metrics(self, V):
+    def _calculate_metrics(self, V: NDArray[Any]) -> Tuple[float, float, float, float, NDArray[Any]]:
         """Calculate portfolio metrics from simulated paths."""
         prob = np.mean(V[:, -1] >= self.TARGET_PORTFOLIO)
         peaks = np.maximum.accumulate(V, axis=1)
@@ -183,12 +187,13 @@ class PortfolioOptimizer:
         avg_final = np.mean(V[:, -1])
         return prob, avg_dd, avg_wd, avg_final, V[:, -1]
 
-    def simulate_metrics(self, w, mu, Sigma, V0, T_years, freq, n_sims):
+    def simulate_metrics(self, w: NDArray[Any], mu: pd.Series, Sigma: pd.DataFrame, 
+                        V0: float, T_years: int, freq: int, n_sims: int) -> Tuple[float, float, float, float, NDArray[Any]]:
         """Simulate portfolio and calculate metrics."""
         V = self._simulate_portfolio_paths(w, mu, Sigma, V0, T_years, freq, n_sims)
         return self._calculate_metrics(V)
 
-    def _calculate_penalties(self, w, Sigma, dd, wd):
+    def _calculate_penalties(self, w: NDArray[Any], Sigma: pd.DataFrame, dd: float, wd: float) -> Tuple[float, float, float, float]:
         """Calculate all penalty terms."""
         vol = np.sqrt(w.T @ Sigma.values @ w)
         sigma_penalty = self.LAMBDA_SIGMA * max(0, vol - self.SIGMA_MAX)**2
@@ -197,7 +202,7 @@ class PortfolioOptimizer:
         cash_penalty = self.LAMBDA_CASH * max(0, self.CASH_MIN - w[self.TICKERS.index(self.CASH_TICKER)])**2
         return sigma_penalty, drawdown_penalty, worst_day_penalty, cash_penalty
 
-    def objective(self, x, posterior_mu, posterior_sigma):
+    def objective(self, x: NDArray[Any], posterior_mu: pd.Series, posterior_sigma: pd.DataFrame) -> float:
         """Objective function for optimization."""
         x = np.clip(x, 0, 1)
         w = x / x.sum()
@@ -221,7 +226,7 @@ class PortfolioOptimizer:
         )
         return obj
 
-    def de_callback(self, xk, convergence):
+    def de_callback(self, xk: NDArray[Any], convergence: float) -> bool:
         """Execute callback for differential evolution iteration."""
         self.iteration += 1
         w = np.clip(xk, 0, 1)
@@ -232,10 +237,10 @@ class PortfolioOptimizer:
         self.logger.info(f"[Callback] Gen={self.iteration}, obj={obj:.4f}, w={w}")
         return False
 
-    def _setup_black_litterman(self, prices):
+    def _setup_black_litterman(self, prices: pd.DataFrame) -> Tuple[pd.Series, pd.DataFrame]:
         """Set up Black-Litterman model parameters."""
         # Calculate historical parameters
-        _mu_hist = expected_returns.mean_historical_return(prices)
+        _mu_hist = expected_returns.mean_historical_return(prices)  # noqa: F841
         sigma_hist = risk_models.sample_cov(prices)
         caps = pd.Series({t: yf.Ticker(t).info.get("marketCap", np.nan) for t in self.TICKERS})
         cap_wts = caps.fillna(caps.median()) / caps.sum()
@@ -276,15 +281,15 @@ class PortfolioOptimizer:
         
         return bl.bl_returns(), bl.bl_cov()
 
-    def optimize(self, run_id=None, save_outputs=True):
+    def optimize(self, run_id: Optional[str] = None, save_outputs: bool = True) -> Dict[str, Any]:
         """Run the portfolio optimization process.
         
         Args:
-            run_id (str): Unique identifier for this run (if None, will be generated)
-            save_outputs (bool): Whether to save outputs to files (default: True)
+            run_id: Unique identifier for this run (if None, will be generated)
+            save_outputs: Whether to save outputs to files (default: True)
             
         Returns:
-            dict: Optimization results including weights and metrics
+            Optimization results including weights and metrics
         """
         if run_id is None:
             run_id = time.strftime('%Y%m%d_%H%M%S')
@@ -368,7 +373,7 @@ class PortfolioOptimizer:
 
         return results_dict
 
-    def _create_visualization(self, run_id, w_opt, finals, prices):
+    def _create_visualization(self, run_id: str, w_opt: NDArray[Any], finals: NDArray[Any], prices: pd.DataFrame) -> None:
         """Create all visualization plots."""
         # Objective plot
         plt.figure()
@@ -425,7 +430,8 @@ class PortfolioOptimizer:
         plt.savefig(os.path.join(self.output_dir, f"{self.log_prefix}_mc_paths_{run_id}.png"))
         plt.close()
 
-    def _log_results(self, run_id, elapsed, p_opt, avg_final, dd_opt, wd_opt, vol_opt, cash_alloc):
+    def _log_results(self, run_id: str, elapsed: float, p_opt: float, avg_final: float, 
+                    dd_opt: float, wd_opt: float, vol_opt: float, cash_alloc: float) -> None:
         """Log and print optimization results."""
         summary = (
             f"Run {run_id} Summary:\n"

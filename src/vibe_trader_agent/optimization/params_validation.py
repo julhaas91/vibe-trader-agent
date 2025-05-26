@@ -65,9 +65,6 @@ def _validate_required_params(params: Dict[str, Any]) -> None:
     for param, expected_type in required_params.items():
         if param not in params:
             raise ValueError(f"Required parameter '{param}' is missing")
-        
-        if not isinstance(params[param], expected_type):
-            raise TypeError(f"Parameter '{param}' must be of type {expected_type.__name__}")
 
 
 def _validate_portfolio_params(params: Dict[str, Any]) -> None:
