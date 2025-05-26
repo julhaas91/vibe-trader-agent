@@ -70,7 +70,7 @@ def route_asset_finder_output(state: State) -> Literal["views_analyst", "tools_f
     return "human_input_finder"
 
 
-def route_views_analyst_output(state: State) -> Literal["tools_analyst", "optimization"]:
+def route_views_analyst_output(state: State) -> Literal["tools_analyst", "optimizer"]:
     """Route based on the views analyst output.
     
     Args:
@@ -90,5 +90,5 @@ def route_views_analyst_output(state: State) -> Literal["tools_analyst", "optimi
         return "tools_analyst"
     
     # END the Graph
-    return "optimization"
+    return "optimizer"
 

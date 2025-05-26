@@ -3,6 +3,7 @@
 import json
 from datetime import UTC, datetime
 from typing import Any, Dict, cast
+from dataclasses import asdict
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
@@ -24,6 +25,11 @@ from vibe_trader_agent.tools import (
     views_analyst_tools,
 )
 from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
+
+from vibe_trader_agent.optimization.portfolio_optimizer import PortfolioOptimizer
+from vibe_trader_agent.optimization.state_parser import parse_state_to_optimizer_params
+from vibe_trader_agent.optimization.params_validation import validate_optimizer_params
+from vibe_trader_agent.optimization.results_formatting import format_results_for_llm
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
@@ -240,7 +246,7 @@ async def views_analyst(state: State) -> Dict[str, Any]:
             return {
                 "messages": [AIMessage(content="Black-Litterman inputs generated and extracted successfully.")],
                 "bl_views": tool_output["bl_views"],
-                "next": "optimization"
+                "next": "optimizer"
             }
     
     # Create reasoning model
@@ -303,3 +309,54 @@ def human_input_node(state: State) -> Dict[str, Any]:
     
     # Return the user input to update the state
     return {"user_input": user_response}
+
+
+async def optimizer(state: State) -> Dict[str, Any]:
+    """Node to perform portfolio optimization.
+    
+    Args:
+        state (State): The current state of the conversation.
+
+    Returns:
+        Dict[str, Any]: LLM-friendly output of the optimization process.
+    """
+
+    # Debugging
+    # from vibe_trader_agent.misc import save_state_to_json
+    # save_state_to_json(state, "./user_state.json")
+
+    # Debugging    
+    # with open("./user_state.json", 'r') as f:
+    #     state_loaded = json.load(f)
+
+    # Convert State to expected params by Optimizer
+    params = parse_state_to_optimizer_params(
+        asdict(state), 
+        scenarios=5000,     # TODO: optimal value
+        max_iterations=25,  # TODO: optimal value
+        output_dir=None     # No File writing
+    )
+
+    # Validate params
+    try:
+        valid_params = validate_optimizer_params(params)
+    except Exception as e:
+        return {
+            "messages": [AIMessage(content=f"Parameter validation failed: {str(e)}")],
+        }
+
+    try:
+        optimizer_instance = PortfolioOptimizer(**params)
+        optimizer_results = optimizer_instance.optimize(save_outputs=False)
+        
+        formatted_results = format_results_for_llm(optimizer_results)
+        
+        return {
+            "messages": [AIMessage(content=formatted_results)], 
+            "optimizer_outcome": formatted_results
+        }
+    except Exception as e:
+        return {
+            "messages": [AIMessage(content=f"Optimization failed: {str(e)}")],
+        }
+

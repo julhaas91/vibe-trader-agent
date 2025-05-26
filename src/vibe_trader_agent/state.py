@@ -88,3 +88,6 @@ class State(InputState):
     - explanation: str - Brief explanation of the generated views.
     - tickers: List[str] - ticker ordering for reference
     """
+    
+    # Optimization Engine results
+    optimizer_outcome: str = field(default="")
