@@ -10,6 +10,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration
+from vibe_trader_agent.finance_tools import validate_ticker_exists
 from vibe_trader_agent.misc import get_current_date
 from vibe_trader_agent.optimization.params_validation import validate_optimizer_params
 from vibe_trader_agent.optimization.portfolio_optimizer import PortfolioOptimizer
@@ -28,7 +29,6 @@ from vibe_trader_agent.tools import (
     profile_builder_tools,
     views_analyst_tools,
 )
-from vibe_trader_agent.finance_tools import validate_ticker_exists
 from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
 
 
@@ -198,15 +198,9 @@ async def asset_finder(state: State) -> Dict[str, Any]:
         if tool_call["name"] == "extract_tickers_data":
             # Tickers identified - update state and route to views analyst
             # Note: don't add tool-call message
-            tickers = tool_call["args"]
-
-            print(f"BEFORE: {tickers}")
-
-            # Validate tickers
+            tickers = tool_call["args"]            
             tickers["tickers"] = [t for t in tickers["tickers"] if validate_ticker_exists(t)]
-
-            print(f"AFTER: {tickers}")
-
+            
             result.update(tickers)
             result["next"] = "views_analyst"
             return result
