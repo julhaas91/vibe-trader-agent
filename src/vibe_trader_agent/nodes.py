@@ -28,6 +28,7 @@ from vibe_trader_agent.tools import (
     profile_builder_tools,
     views_analyst_tools,
 )
+from vibe_trader_agent.finance_tools import validate_ticker_exists
 from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
 
 
@@ -198,6 +199,14 @@ async def asset_finder(state: State) -> Dict[str, Any]:
             # Tickers identified - update state and route to views analyst
             # Note: don't add tool-call message
             tickers = tool_call["args"]
+
+            print(f"BEFORE: {tickers}")
+
+            # Validate tickers
+            tickers["tickers"] = [t for t in tickers["tickers"] if validate_ticker_exists(t)]
+
+            print(f"AFTER: {tickers}")
+
             result.update(tickers)
             result["next"] = "views_analyst"
             return result
