@@ -456,7 +456,8 @@ class PDFDashboardGenerator:
         return story
 
 
-def generate_pdf_dashboard(results_dict: Dict, 
+def generate_pdf_dashboard(inputs: Dict,
+                          results: Dict, 
                           output_path: Optional[str] = None,
                           title: str = "Portfolio Optimization Dashboard",
                           subtitle: str = "Investment Analysis Report",
@@ -465,7 +466,8 @@ def generate_pdf_dashboard(results_dict: Dict,
     """Generate PDF dashboard - returns bytes or saves to file.
     
     Args:
-        results_dict: Results dictionary from PortfolioOptimizer.optimize()
+        inputs: Input parameters dictionary containing tickers, portfolio values, constraints, etc.
+        results: Results dictionary containing weights, success_prob, avg_final, volatility, etc.
         output_path: If provided, saves to file and returns path. If None, returns bytes.
         title: Dashboard title
         subtitle: Dashboard subtitle  
@@ -477,11 +479,17 @@ def generate_pdf_dashboard(results_dict: Dict,
         
     Examples:
         # Get bytes for cloud upload
-        pdf_bytes = generate_pdf_dashboard(results)
+        pdf_bytes = generate_pdf_dashboard(inputs_dict, results_dict)
         
         # Save to file
-        file_path = generate_pdf_dashboard(results, output_path="./report.pdf")
+        file_path = generate_pdf_dashboard(inputs_dict, results_dict, output_path="./report.pdf")
     """
+    # Reconstruct the combined results dictionary for internal use
+    results_dict = {
+        'inputs': inputs,
+        'results': results
+    }
+    
     generator = PDFDashboardGenerator(
         title=title,
         subtitle=subtitle, 
@@ -496,33 +504,31 @@ def generate_pdf_dashboard(results_dict: Dict,
 
 
 if __name__ == "__main__":
-    # Example results structure (for testing)
+    # Example inputs and results structure (for testing)
+    sample_inputs = {
+        'tickers': ['SPY', 'QQQ', 'TLT', 'GLD', 'BIL'],
+        'start_portfolio': 100000,
+        'target_portfolio': 150000,
+        'horizon_years': 5,
+        'scenarios': 1000,
+        'sigma_max': 0.15,
+        'max_drawdown': 0.10,
+    }
+    
     sample_results = {
-        'inputs': {
-            'tickers': ['SPY', 'QQQ', 'TLT', 'GLD', 'BIL'],
-            'start_portfolio': 100000,
-            'target_portfolio': 150000,
-            'horizon_years': 5,
-            'scenarios': 1000,
-            'sigma_max': 0.15,
-            'max_drawdown': 0.10,
-        },
-        'results': {
-            'weights': [0.4, 0.3, 0.15, 0.1, 0.05],
-            'success_prob': 0.75,
-            'avg_final': 145000,
-            'volatility': 0.12,
-            'avg_drawdown': 0.08,
-            'elapsed_time': 2.5,
-            'iterations': 15,
-        }
+        'weights': [0.4, 0.3, 0.15, 0.1, 0.05],
+        'success_prob': 0.75,
+        'avg_final': 145000,
+        'volatility': 0.12,
+        'avg_drawdown': 0.08,
+        'elapsed_time': 2.5,
+        'iterations': 15,
     }
     
     # Generate PDF bytes (main use case)
-    pdf_bytes = generate_pdf_dashboard(sample_results)
+    pdf_bytes = generate_pdf_dashboard(sample_inputs, sample_results)
     print(f"Generated PDF: {len(pdf_bytes):,} bytes")
     
     # Save to file (optional)
-    file_path = generate_pdf_dashboard(sample_results, output_path="./test_dashboard.pdf")
+    file_path = generate_pdf_dashboard(sample_inputs, sample_results, output_path="./test_dashboard.pdf")
     print(f"Saved PDF to: {file_path}")
-    
