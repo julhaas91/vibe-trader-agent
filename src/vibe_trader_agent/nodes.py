@@ -11,7 +11,7 @@ from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.finance_tools import validate_ticker_exists
-from vibe_trader_agent.misc import get_current_date
+from vibe_trader_agent.misc import get_current_date, generate_short_id
 from vibe_trader_agent.optimization.params_validation import validate_optimizer_params
 from vibe_trader_agent.optimization.portfolio_optimizer import PortfolioOptimizer
 from vibe_trader_agent.optimization.results_formatting import format_results_for_llm
@@ -21,6 +21,7 @@ from vibe_trader_agent.prompts import (
     FINANCIAL_ADVISOR_SYSTEM_PROMPT,
     PROFILE_BUILDER_SYSTEM_PROMPT,
     VIEWS_ANALYST_SYSTEM_PROMPT,
+    REPORTER_SYSTEM_PROMPT,
 )
 from vibe_trader_agent.state import State
 from vibe_trader_agent.tools import (
@@ -30,6 +31,8 @@ from vibe_trader_agent.tools import (
     views_analyst_tools,
 )
 from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
+from vibe_trader_agent.gcs_client import upload_pdf
+from vibe_trader_agent.optimization.pdf_dashboard import generate_pdf_dashboard
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
@@ -334,7 +337,7 @@ async def optimizer(state: State) -> Dict[str, Any]:
     params = parse_state_to_optimizer_params(
         asdict(state), 
         scenarios=5000,     # TODO: optimal value
-        max_iterations=25,  # TODO: optimal value
+        max_iterations=10,  # TODO: optimal value
         output_dir=None     # No File writing
     )
 
@@ -350,14 +353,68 @@ async def optimizer(state: State) -> Dict[str, Any]:
         optimizer_instance = PortfolioOptimizer(**params)
         optimizer_results = optimizer_instance.optimize(save_outputs=False)
         
+        # Format results into user-friendly message
         formatted_results = format_results_for_llm(optimizer_results)
-        
+
         return {
             "messages": [AIMessage(content=formatted_results)], 
+            "optimizer_raw_results": optimizer_results,
             "optimizer_outcome": formatted_results
         }
     except Exception as e:
         return {
             "messages": [AIMessage(content=f"Optimization failed: {str(e)}")],
         }
+
+
+async def reporter(state: State) -> Dict[str, Any]:
+    """Report final results in a user-friendly manner.
+    
+    Args:
+        state (State): The current state of the conversation.
+        
+    Returns:
+        dict: Updated state with response and routing information.
+    """
+    # Publish PDF Dashboard
+    if not state.pdf_dashboard_url:
+        try:
+            # Inputs to the Optimizer
+            input_params = parse_state_to_optimizer_params(
+                asdict(state), 
+                scenarios=5000,     # TODO: optimal value
+                max_iterations=10,  # TODO: optimal value
+                output_dir=None     # No File writing
+            )
+            pdf_id = generate_short_id(state.optimizer_outcome)
+            pdf_bytes = generate_pdf_dashboard(input_params, state.optimizer_raw_results)
+
+            url = upload_pdf(bucket_name="vibe-trader-reports-dev",
+                            destination=f"vibe_trader_dashboard_{pdf_id}.pdf",
+                            content=pdf_bytes,
+                            make_public=True,
+                            expiration_days=7
+            )
+        except:
+            url = "Invalid URL: Error in PDF Dashboard Publication"
+    
+    configuration = Configuration.from_context()
+
+    # Initialize the model with tools
+    model = load_chat_model(configuration.model)
+
+    # Format the system prompt with current time
+    system_message = REPORTER_SYSTEM_PROMPT.format(
+        system_time=datetime.now(tz=UTC).isoformat()
+    )
+
+    # Get the model's response
+    response = cast(AIMessage, await model.ainvoke([
+        {"role": "system", "content": system_message},
+        AIMessage(content=f"PDF Dashboard available at: {url}"),
+        HumanMessage(content=f"My complete personal data: {asdict(state)}"),
+        HumanMessage(content=f"Explain clearly the results of the Portfolio Optimization: {state.optimizer_outcome}. Include link to the PDF Dashboard at the end."),
+    ]))
+    
+    return {"messages": [response]}
 
