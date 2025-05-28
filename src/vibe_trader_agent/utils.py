@@ -8,8 +8,6 @@ from langchain.chat_models import init_chat_model
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage
 
-from google.cloud import storage
-
 
 def get_message_text(msg: BaseMessage) -> str:
     """Get the text content of a message."""
@@ -81,61 +79,3 @@ def concatenate_mandate_data(
         parts.append(f"investment_preferences: {prefs}")
     
     return "; ".join(parts)
-
-
-class GCStorage:
-    def __init__(self, storage_client: storage.Client) -> None:
-        self.client = storage_client
-
-    def get_bucket(self, bucket_name: str) -> storage.Bucket:
-        return self.client.get_bucket(bucket_name)
-
-    def upload_bytes(
-            self,
-            bucket: storage.Bucket,
-            destination: str,
-            content: bytes,
-            public: bool,
-            expiration_days: int = 7
-            ) -> str:
-        blob = bucket.blob(destination)
-        blob.upload_from_string(content, content_type='application/pdf')
-
-        if public:
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=dt.timedelta(days=expiration_days),
-                method="GET"
-                )
-        else:
-            return f"gs://{bucket.name}/{destination}"
-
-
-def init_storage_client(project_id: str) -> storage.Client:
-    try:
-        credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        if credentials_path:
-            from google.oauth2 import service_account
-            credentials = service_account.Credentials.from_service_account_file(
-                credentials_path
-                )
-            return storage.Client(project=project_id, credentials=credentials)
-        return storage.Client(project=project_id)
-    except Exception as e:
-        raise OSError(
-            "Failed to initialize storage client. Ensure GOOGLE_CLOUD_PROJECT "
-            "environment variable is set or pass project_id explicitly."
-            ) from e
-
-
-def upload_pdf(client: storage.Client, bucket: str, destination: str, content: bytes, make_public: bool = False, expiration_days: int = 7) -> None | str:
-
-    gcs = GCStorage(client)
-    bucket_gcs = gcs.get_bucket(bucket)
-    return gcs.upload_bytes(
-        bucket=bucket_gcs,
-        destination=destination,
-        content=content,
-        public=make_public,
-        expiration_days=expiration_days
-        )
