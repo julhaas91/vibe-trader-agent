@@ -338,12 +338,12 @@ async def optimizer(state: State) -> Dict[str, Any]:
     )
 
     # Validate params
-    try:
-        validate_optimizer_params(params)
-    except Exception as e:
-        return {
-            "messages": [AIMessage(content=f"Parameter validation failed: {str(e)}")],
-        }
+    # try:
+    #     validate_optimizer_params(params)
+    # except Exception as e:
+    #     return {
+    #         "messages": [AIMessage(content=f"Parameter validation failed: {str(e)}")],
+    #     }
 
     try:
         optimizer_instance = PortfolioOptimizer(**params)
