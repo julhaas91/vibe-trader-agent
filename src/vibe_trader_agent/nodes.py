@@ -325,10 +325,6 @@ async def optimizer(state: State) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: LLM-friendly output of the optimization process.
     """
-    # Debugging
-    # from vibe_trader_agent.misc import save_state_to_json
-    # save_state_to_json(state, "./user_state.json")
-
     # Debugging    
     # with open("./user_state.json", 'r') as f:
     #     state_loaded = json.load(f)
@@ -376,27 +372,33 @@ async def reporter(state: State) -> Dict[str, Any]:
     Returns:
         dict: Updated state with response and routing information.
     """
+    # Debugging
+    # from vibe_trader_agent.misc import save_state_to_json
+    # save_state_to_json(state, "./user_state.json")
+    # print("SAVED")
+
+    # Debugging    
+    # with open("./user_state.json", 'r') as f:
+    #     state_loaded = json.load(f)
+    # state = State(**state_loaded)
+    
     # Publish PDF Dashboard
     if not state.pdf_dashboard_url:
         try:
-            # Inputs to the Optimizer
-            input_params = parse_state_to_optimizer_params(
-                asdict(state), 
-                scenarios=5000,     # TODO: optimal value
-                max_iterations=10,  # TODO: optimal value
-                output_dir=None     # No File writing
-            )
             pdf_id = generate_short_id(state.optimizer_outcome)
-            pdf_bytes = generate_pdf_dashboard(input_params, state.optimizer_raw_results)
-
-            url = upload_pdf(bucket_name="vibe-trader-reports-dev",
-                            destination=f"vibe_trader_dashboard_{pdf_id}.pdf",
-                            content=pdf_bytes,
-                            make_public=True,
-                            expiration_days=7
+            pdf_bytes = generate_pdf_dashboard(
+                inputs=state.optimizer_raw_results["inputs"], 
+                results=state.optimizer_raw_results["results"],
+            )
+            url = upload_pdf(
+                bucket_name="vibe-trader-reports-dev",
+                destination=f"vibe_trader_dashboard_{pdf_id}.pdf",
+                content=pdf_bytes,
+                make_public=True,
+                expiration_days=7
             )
         except:
-            url = "Invalid URL: Error in PDF Dashboard Publication"
+            url = "Invalid URL: Please double check the PDF Dashboard Publication."
     
     configuration = Configuration.from_context()
 
