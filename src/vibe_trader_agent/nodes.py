@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any, Dict, cast
+import asyncio
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
@@ -297,7 +298,7 @@ async def views_analyst(state: State) -> Dict[str, Any]:
     return result
 
 
-def human_input_node(state: State) -> Dict[str, Any]:
+async def human_input_node(state: State) -> Dict[str, Any]:
     """Node that pauses execution to get input from the human user.
     
     Args:
@@ -309,8 +310,8 @@ def human_input_node(state: State) -> Dict[str, Any]:
     # Last msg from the model
     model_response = state.messages[-1].content
 
-    # Use interrupt to pause graph execution and wait for user input
-    user_response = interrupt(model_response)
+    # Use asyncio.to_thread to run the blocking interrupt call in a separate thread
+    user_response = await asyncio.to_thread(interrupt, model_response)
     
     # Return the user input to update the state
     return {"user_input": user_response}
