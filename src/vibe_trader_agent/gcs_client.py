@@ -51,21 +51,30 @@ class GCStorage:
 def init_storage_client(project_id: Optional[str] = None) -> storage.Client:
     """Initialize Google Cloud Storage client."""
     try:
-        # Use environment variable if project_id not provided
-        if project_id is None:
-            project_id = os.getenv("GOOGLE_CLOUD_PROJECT")
-            if not project_id:
-                raise ValueError("Project ID required via parameter or GOOGLE_CLOUD_PROJECT env var")
+        # Get credentials from environment variables
+        credentials_dict = {
+            "type": "service_account",
+            "project_id": os.getenv("GOOGLE_CLOUD_PROJECT"),
+            "private_key_id": os.getenv("GOOGLE_PRIVATE_KEY_ID"),
+            "private_key": os.getenv("GOOGLE_PRIVATE_KEY", "").replace("\\n", "\n"),
+            "client_email": os.getenv("GOOGLE_CLIENT_EMAIL"),
+            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "auth_provider_x509_cert_url": os.getenv("GOOGLE_AUTH_PROVIDER_CERT_URL"),
+            "client_x509_cert_url": os.getenv("GOOGLE_CLIENT_CERT_URL"),
+            "universe_domain": "googleapis.com"
+        }
         
-        credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-        if credentials_path and os.path.exists(credentials_path):
-            from google.oauth2 import service_account
-            credentials = service_account.Credentials.from_service_account_file(
-                credentials_path
-            )
-            return storage.Client(project=project_id, credentials=credentials)
+        # Validate required fields
+        required_fields = ["private_key_id", "private_key", "client_email", "client_id"]
+        missing_fields = [field for field in required_fields if not credentials_dict.get(field)]
+        if missing_fields:
+            raise ValueError(f"Missing required environment variables: {', '.join(missing_fields)}")
         
-        return storage.Client(project=project_id)
+        from google.oauth2 import service_account
+        credentials = service_account.Credentials.from_service_account_info(credentials_dict)
+        return storage.Client(project=project_id, credentials=credentials)
     
     except Exception as e:
         raise RuntimeError(f"Failed to initialize storage client: {e}") from e
