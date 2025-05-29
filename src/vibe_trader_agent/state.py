@@ -90,4 +90,8 @@ class State(InputState):
     """
     
     # Optimization Engine results
+    optimizer_raw_results: Dict[str, Any] = field(default_factory=dict)
     optimizer_outcome: str = field(default="")
+
+    # URL with the final Dashboard
+    pdf_dashboard_url: str = field(default="")

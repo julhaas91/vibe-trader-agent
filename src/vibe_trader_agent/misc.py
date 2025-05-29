@@ -1,6 +1,7 @@
 """Utils module for helper functions."""
 
 import json
+import hashlib
 import re
 from dataclasses import asdict
 from datetime import UTC, datetime
@@ -62,3 +63,9 @@ def save_state_to_json(state: State, filepath: str = "./user_state.json") -> Non
             
     except Exception:
         pass
+
+
+def generate_short_id(text: str, length: int = 8) -> str:
+    """Generate a shorter unique ID (note: higher collision risk)."""
+    full_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
+    return full_hash[:length]

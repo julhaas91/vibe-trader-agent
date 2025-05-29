@@ -13,6 +13,7 @@ from vibe_trader_agent.nodes import (
     optimizer,
     profile_builder,
     views_analyst,
+    reporter,
 )
 from vibe_trader_agent.routers import (
     route_asset_finder_output,
@@ -57,6 +58,8 @@ builder.add_node("tools_analyst", ToolNode(views_analyst_tools))
 
 builder.add_node("optimizer", optimizer)
 
+builder.add_node("reporter", reporter)
+
 
 # Define the flow
 builder.add_edge(START, "profile_builder")
@@ -96,7 +99,10 @@ builder.add_conditional_edges(
 builder.add_edge("tools_analyst", "views_analyst")
 
 # //
-builder.add_edge("optimizer", END)
+builder.add_edge("optimizer", "reporter")
+
+# //
+builder.add_edge("reporter", END)
 
 
 # Compile the builder into an executable graph

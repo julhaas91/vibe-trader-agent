@@ -1,3 +1,6 @@
+# GCS Credentials
+service-key.json
+
 # Optimization outputs
 /optimization_output_*
 **/optimization_output/
