@@ -374,10 +374,10 @@ async def optimizer(state: State) -> Dict[str, Any]:
     )
 
     try:
-        # Get Cloud Run service URL from environment
-        service_url = os.getenv("OPTIMIZER_SERVICE_URL")
-        if not service_url:
-            raise ValueError("OPTIMIZER_SERVICE_URL environment variable not set")
+        # Todo: fix this and use the environment variable
+        # service_url = os.getenv("OPTIMIZER_SERVICE_URL")
+        # if not service_url:
+        #     raise ValueError("OPTIMIZER_SERVICE_URL environment variable not set")
 
         # Get Google Cloud credentials for authentication
         credentials = get_google_credentials()
@@ -399,7 +399,8 @@ async def optimizer(state: State) -> Dict[str, Any]:
         # Call the Cloud Run service
         async with httpx.AsyncClient(timeout=300.0) as client:  # 5 minute timeout
             response = await client.post(
-                f"{service_url}/optimize",
+                #f"{service_url}/optimize",
+                f"https://viber-trader-optimizer-189263797377.europe-west3.run.app/optimize",
                 json=params,
                 headers=headers
             )
