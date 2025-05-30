@@ -27,6 +27,7 @@ dependencies = [
     "google-cloud-storage>=3.1.0",
     "notebook>=7.4.2",
     "reportlab>=4.4.1",
+    "langgraph-cli[inmem]>=0.2.10",
 ]
 
 

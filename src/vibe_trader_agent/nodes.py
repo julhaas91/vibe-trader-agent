@@ -405,16 +405,14 @@ async def optimizer(state: State) -> Dict[str, Any]:
             )
             response.raise_for_status()
             optimizer_results = response.json()
-            print("Response", response)
-            print(optimizer_results)
-        
+
         # Format results into user-friendly message
         formatted_results = format_results_for_llm(optimizer_results)
 
         return {
-            "messages": [AIMessage(content=formatted_results)], 
+            "messages": [AIMessage(content=formatted_results)],
             "optimizer_raw_results": optimizer_results,
-            "optimizer_outcome": formatted_results
+            "optimizer_outcome": formatted_results,
         }
     except Exception as e:
         return {
@@ -440,7 +438,7 @@ async def reporter(state: State) -> Dict[str, Any]:
     # with open("./user_state.json", 'r') as f:
     #     state_loaded = json.load(f)
     # state = State(**state_loaded)
-    
+
     # Publish PDF Dashboard
     if not state.pdf_dashboard_url:
         try:
