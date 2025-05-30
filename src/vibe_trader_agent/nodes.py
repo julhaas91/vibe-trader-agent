@@ -8,6 +8,8 @@ from typing import Any, Dict, cast
 import asyncio
 import httpx
 from google.oauth2 import service_account
+from google.auth.transport import requests
+
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langchain_openai import ChatOpenAI
@@ -40,6 +42,8 @@ from vibe_trader_agent.optimization.pdf_dashboard import generate_pdf_dashboard
 
 def get_google_credentials():
     """Get Google Cloud credentials for service authentication."""
+    service_url = os.getenv("OPTIMIZER_SERVICE_URL")
+
     credentials_dict = {
         "type": "service_account",
         "project_id": os.getenv("GOOGLE_CLOUD_PROJECT"),
@@ -59,8 +63,16 @@ def get_google_credentials():
     missing_fields = [field for field in required_fields if not credentials_dict.get(field)]
     if missing_fields:
         raise ValueError(f"Missing required environment variables: {', '.join(missing_fields)}")
-    
-    return service_account.Credentials.from_service_account_info(credentials_dict)
+    credentials = service_account.IDTokenCredentials.from_service_account_info(
+        credentials_dict,
+        target_audience=service_url,
+        additional_claims={
+            "email": credentials_dict["client_email"],
+            "email_verified": True
+            }
+    )
+
+    return credentials
 
 
 async def profile_builder(state: State) -> Dict[str, Any]:
@@ -356,8 +368,8 @@ async def optimizer(state: State) -> Dict[str, Any]:
     # Convert State to expected params by Optimizer
     params = parse_state_to_optimizer_params(
         asdict(state), 
-        scenarios=5000,     # TODO: optimal value
-        max_iterations=10,  # TODO: optimal value
+        scenarios=5,     # TODO: optimal value
+        max_iterations=1,  # TODO: optimal value
         output_dir=None     # No File writing
     )
 
@@ -369,13 +381,18 @@ async def optimizer(state: State) -> Dict[str, Any]:
 
         # Get Google Cloud credentials for authentication
         credentials = get_google_credentials()
-        
+
         # Refresh credentials to get access token
-        credentials.refresh(httpx.Request())
-        
+        auth_req = requests.Request()
+        credentials.refresh(auth_req)
+        token = credentials.token
+
+        if not token:
+            raise ValueError("Failed to obtain access token")
+
         # Prepare headers for authenticated request
         headers = {
-            "Authorization": f"Bearer {credentials.token}",
+            "Authorization": f"Bearer {token}",
             "Content-Type": "application/json"
         }
         
@@ -388,6 +405,8 @@ async def optimizer(state: State) -> Dict[str, Any]:
             )
             response.raise_for_status()
             optimizer_results = response.json()
+            print("Response", response)
+            print(optimizer_results)
         
         # Format results into user-friendly message
         formatted_results = format_results_for_llm(optimizer_results)

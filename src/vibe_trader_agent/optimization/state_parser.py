@@ -96,9 +96,9 @@ def parse_state_to_optimizer_params(state: Dict[str, Any], **kwargs: Any) -> Dic
         "log_prefix": log_prefix,
         
         # Black-Litterman parameters
-        "bl_view_matrix_P": bl_params.get("bl_view_matrix_P"),
-        "bl_view_vector_Q": bl_params.get("bl_view_vector_Q"),
-        "bl_view_uncertainty_omega": bl_params.get("bl_view_uncertainty_omega"),
+        "bl_view_matrix_P": bl_params.get("bl_view_matrix_P").tolist(),
+        "bl_view_vector_Q": bl_params.get("bl_view_vector_Q").tolist(),
+        "bl_view_uncertainty_omega": bl_params.get("bl_view_uncertainty_omega").tolist(),
     }
     
     # Apply user overrides
