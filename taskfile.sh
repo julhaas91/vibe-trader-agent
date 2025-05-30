@@ -3,7 +3,7 @@ set -e
 
 # Tasks
 run() {
-  uv run langgraph dev
+  uv run langgraph dev --allow-blocking
 }
 
 setup_venv() {
