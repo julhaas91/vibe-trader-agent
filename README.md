@@ -93,3 +93,8 @@ print(f"File uploaded successfully. Access URL: {url}")
 ```
 Using this example u can upload any object converting into bytes stream.
 If you specify make_public - as output you will get link to uploaded file.
+
+## Questions and Support
+
+> If you have any questions or need technical support, feel free to reach out.  
+> You can contact me via [email](mailto:juliushaas91@gmail.com) or connect with me on [LinkedIn](https://www.linkedin.com/in/jh91/).
