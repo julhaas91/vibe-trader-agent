@@ -7,7 +7,7 @@ from langchain_core.messages import AIMessage
 from vibe_trader_agent.state import State
 
 
-def route_profile_builder_output(state: State) -> Literal["financial_advisor", "tools_builder", "human_input_builder"]:
+def route_profiler_output(state: State) -> Literal["mandate_strategist", "profiler_tools", "profiler_human"]:
     """Route based on the profile builder output.
     
     Args:
@@ -22,13 +22,13 @@ def route_profile_builder_output(state: State) -> Literal["financial_advisor", "
     
     # Fallback: check if profile is complete
     if state.profile_complete:
-        return "financial_advisor"
+        return "mandate_strategist"
     
     # Default: continue with user input
-    return "human_input_builder"
+    return "profiler_human"
 
 
-def route_financial_advisor_output(state: State) -> Literal["asset_finder", "tools_advisor", "human_input_advisor"]:
+def route_mandate_strategist_output(state: State) -> Literal["asset_researcher", "strategist_tools", "strategist_human"]:
     """Route based on the financial advisor output.
     
     Args:
@@ -43,13 +43,13 @@ def route_financial_advisor_output(state: State) -> Literal["asset_finder", "too
     
     # Fallback: check if mandate is complete
     if state.mandate_complete:
-        return "asset_finder"
+        return "asset_researcher"
     
     # Default: continue with user input
-    return "human_input_advisor"
+    return "strategist_human"
 
 
-def route_asset_finder_output(state: State) -> Literal["views_analyst", "tools_finder", "human_input_finder"]:
+def route_asset_researcher_output(state: State) -> Literal["portfolio_analyst", "researcher_tools", "researcher_human"]:
     """Route based on the asset finder output.
     
     Args:
@@ -64,13 +64,13 @@ def route_asset_finder_output(state: State) -> Literal["views_analyst", "tools_f
     
     # Fallback: check if mandate is complete
     if state.tickers:
-        return "views_analyst"
+        return "portfolio_analyst"
     
     # Default: continue with user input
-    return "human_input_finder"
+    return "researcher_human"
 
 
-def route_views_analyst_output(state: State) -> Literal["tools_analyst", "optimizer"]:
+def route_portfolio_analyst_output(state: State) -> Literal["tools_analyst", "portfolio_optimizer"]:
     """Route based on the views analyst output.
     
     Args:
@@ -90,5 +90,5 @@ def route_views_analyst_output(state: State) -> Literal["tools_analyst", "optimi
         return "tools_analyst"
     
     # END the Graph
-    return "optimizer"
+    return "portfolio_optimizer"
 
