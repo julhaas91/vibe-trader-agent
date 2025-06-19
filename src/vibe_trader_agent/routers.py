@@ -70,7 +70,7 @@ def route_asset_researcher_output(state: State) -> Literal["portfolio_analyst", 
     return "researcher_human"
 
 
-def route_portfolio_analyst_output(state: State) -> Literal["tools_analyst", "portfolio_optimizer"]:
+def route_portfolio_analyst_output(state: State) -> Literal["analyst_tools", "portfolio_optimizer"]:
     """Route based on the views analyst output.
     
     Args:
@@ -87,7 +87,7 @@ def route_portfolio_analyst_output(state: State) -> Literal["tools_analyst", "po
     
     # If there is tool call, redirect to tools
     if last_message.tool_calls:
-        return "tools_analyst"
+        return "analyst_tools"
     
     # END the Graph
     return "portfolio_optimizer"

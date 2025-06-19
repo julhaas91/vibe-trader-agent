@@ -94,7 +94,7 @@ builder.add_conditional_edges(
     "portfolio_analyst",
     route_portfolio_analyst_output,
 )
-builder.add_edge("tools_analyst", "portfolio_analyst")
+builder.add_edge("analyst_tools", "portfolio_analyst")
 
 # //
 builder.add_edge("portfolio_optimizer", "reporter")
