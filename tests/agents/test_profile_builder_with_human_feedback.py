@@ -6,7 +6,7 @@ from langgraph.types import interrupt
 
 from vibe_trader_agent.configuration import Configuration  # type: ignore
 from vibe_trader_agent.nodes import (  # type: ignore
-    profile_builder,
+    profiler,
 )
 from vibe_trader_agent.state import InputState, State  # type: ignore
 from vibe_trader_agent.tools import TOOLS  # type: ignore
@@ -52,19 +52,19 @@ def route_model_output(state: State):
 # Define a new graph
 builder = StateGraph(State, input=InputState, config_schema=Configuration)
 
-builder.add_node("profile_builder", profile_builder)
+builder.add_node("profiler", profiler)
 builder.add_node("tools", ToolNode(TOOLS))
 builder.add_node("human_input", human_input_node)
 builder.add_node("finance_advisor", finance_advisor)
 
-builder.add_edge(START, "profile_builder")
-builder.add_edge("tools", "profile_builder")
-builder.add_edge("human_input", "profile_builder")
+builder.add_edge(START, "profiler")
+builder.add_edge("tools", "profiler")
+builder.add_edge("human_input", "profiler")
 builder.add_edge("finance_advisor", END)
 
 
 builder.add_conditional_edges(
-    "profile_builder",
+    "profiler",
     route_model_output,
 )
 

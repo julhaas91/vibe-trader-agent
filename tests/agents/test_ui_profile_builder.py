@@ -11,7 +11,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from vibe_trader_agent.misc import extract_json  # type: ignore
-from vibe_trader_agent.nodes import profile_builder, route_model_output  # type: ignore
+from vibe_trader_agent.nodes import profiler, route_model_output  # type: ignore
 from vibe_trader_agent.state import InputState, State  # type: ignore
 from vibe_trader_agent.tools import TOOLS  # type: ignore
 
@@ -22,13 +22,13 @@ def create_profile_builder():
     """Graph consisting of a single node - Profile Builder"""
     builder = StateGraph(State, input=InputState)
 
-    builder.add_node("profile_builder", profile_builder)
+    builder.add_node("profiler", profiler)
     builder.add_node("tools", ToolNode(TOOLS))
 
-    builder.add_edge(START, "profile_builder")
-    builder.add_edge("tools", "profile_builder")
+    builder.add_edge(START, "profiler")
+    builder.add_edge("tools", "profiler")
     builder.add_conditional_edges(
-        "profile_builder",
+        "profiler",
         route_model_output,
     )
 
