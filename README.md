@@ -2,21 +2,40 @@
 
 A sophisticated AI agent built with LangGraph that combines financial advisory capabilities with personalized user profiling. The agent uses a state-based graph architecture to manage conversations and provide tailored financial advice.
 
-![Architecture Diagram](static/architecture.png)
+**Vibe-Trader** employs a multi-agent system with specialized AI agents that work together to deliver personalized investment recommendations:
+![Architecture Diagram](static/multi-agent-architecture.png)
+
+## Graph Nodes
+
+| Node | Role | Description |
+|-------|------|-------------|
+| **Profiler** | Investment DNA Capture | Engages in natural conversation to build your complete financial profile, gathering risk tolerance, timeline, goals, and investment preferences |
+| **Mandate Strategist** | Investment Rules Creation | Develops your personalized investment mandate, identifying what to invest in, what to avoid, and establishing your unique investment constraints |
+| **Asset Researcher** | Market Intelligence | Scans thousands of investment opportunities to handpick 10-15 assets that perfectly match your profile while ensuring proper diversification |
+| **Portfolio Analyst** | Risk-Return Analysis | Analyzes market views and runs advanced Monte Carlo simulations to evaluate portfolio performance and risk characteristics |
+| **Portfolio Optimizer** | Allocation Optimization | Calculates optimal asset allocation to maximize your probability of reaching financial goals using quantitative optimization models |
+| **Reporter** | Professional Documentation | Generates comprehensive investment reports with clear insights, portfolio composition, and actionable recommendations |
+
+The agents work sequentially, with each building upon the previous agent's output to create a comprehensive, personalized investment strategy tailored specifically to your financial situation and goals.
+
 
 ## Features
 
-- **Interactive Profile Building**: Dynamically builds user profiles through natural conversation
-- **Financial Advisory**: Provides personalized financial advice based on user profiles
+- **Conversational AI** that adapts to your expertise level
+- **Human-in-the-Loop** verification for critical decisions
 - **Tool Integration**: Supports various tools for enhanced functionality
+- **Market Data Integration** from multiple financial APIs
 - **State Management**: Robust state management for maintaining conversation context
 - **Interruptible Workflows**: Flexible conversation flow with support for tool interruptions
+- **Professional Reporting** with data visualization and cloud storage
+
 
 ## Requirements
 
 - Python 3.11 or higher
 - OpenAI API key (or other supported LLM provider)
 - Other dependencies as specified in `pyproject.toml`
+- Other API keys as specified in `.env.example`
 
 ## Installation
 

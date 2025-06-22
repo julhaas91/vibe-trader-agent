@@ -69,7 +69,7 @@ async def search_market_data(query: str) -> Optional[dict[str, Any]]:
 
 
 # Define individual tools per each node 
-profile_builder_tools = [search, extract_profile_data]
-financial_advisor_tools = [search, extract_mandate_data]
-asset_finder_tools = [search, extract_tickers_data]
-views_analyst_tools = [search_market_data, calculate_financial_metrics, extract_bl_views]
+profiler_tools = [search, extract_profile_data]
+strategist_tools = [search, extract_mandate_data]
+researcher_tools = [search, extract_tickers_data]
+analyst_tools = [search_market_data, calculate_financial_metrics, extract_bl_views]

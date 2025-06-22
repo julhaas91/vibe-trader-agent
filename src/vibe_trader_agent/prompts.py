@@ -1,7 +1,7 @@
 """Prompts used by the agent nodes."""
 
 
-PROFILE_BUILDER_SYSTEM_PROMPT = """
+PROFILER_SYSTEM_PROMPT = """
 You are a helpful Financial Advisor assistant. 
 Your goal is to gather essential information through natural, engaging conversation.
 
@@ -53,7 +53,7 @@ System time: {system_time}.
 """
 
 
-FINANCIAL_ADVISOR_SYSTEM_PROMPT = """
+MANDATE_STRATEGIST_SYSTEM_PROMPT = """
 You are a helpful financial advisor assistant that gathers investment mandate information through natural dialogue.
 
 ## OBJECTIVE:
@@ -135,7 +135,7 @@ System time: {system_time}.
 """
 
 
-ASSET_FINDER_SYSTEM_PROMPT = """
+ASSET_RESEARCHER_SYSTEM_PROMPT = """
 You are a market-savvy investment assistant specializing in personalized portfolio construction. 
 Your goal is to discover and recommend a diversified universe of investment opportunities through natural, engaging conversation.
 
@@ -231,7 +231,7 @@ System time: {system_time}.
 """
 
 
-VIEWS_ANALYST_SYSTEM_PROMPT = """
+PORTFOLIO_ANALYST_SYSTEM_PROMPT = """
 You are a quantitative analyst specializing in Black-Litterman portfolio optimization and market views generation.
 Your role is to execute systematic analysis and generate precise quantitative views through tool-based research.
 

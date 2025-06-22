@@ -6,7 +6,7 @@ from langgraph.graph import START, StateGraph
 from langgraph.prebuilt import ToolNode
 
 from vibe_trader_agent.misc import extract_json  # type: ignore
-from vibe_trader_agent.nodes import route_model_output, views_analyst  # type: ignore
+from vibe_trader_agent.nodes import route_model_output, portfolio_analyst  # type: ignore
 from vibe_trader_agent.state import InputState, State  # type: ignore
 from vibe_trader_agent.tools import TOOLS  # type: ignore
 
@@ -17,14 +17,14 @@ async def main():
     # Define a graph with individual views agent
     builder = StateGraph(State, input=InputState)
 
-    builder.add_node("views_analyst", views_analyst)
+    builder.add_node("portfolio_analyst", portfolio_analyst)
     # builder.add_node("tools", ToolNode([search_market_data, calculate_financial_metrics]))
     builder.add_node("tools", ToolNode(TOOLS))
 
-    builder.add_edge(START, "views_analyst")
-    builder.add_edge("tools", "views_analyst")
+    builder.add_edge(START, "portfolio_analyst")
+    builder.add_edge("tools", "portfolio_analyst")
     builder.add_conditional_edges(
-        "views_analyst",
+        "portfolio_analyst",
         route_model_output,
     )
 

@@ -18,22 +18,21 @@ from langgraph.types import interrupt
 from vibe_trader_agent.configuration import Configuration
 from vibe_trader_agent.finance_tools import validate_ticker_exists
 from vibe_trader_agent.misc import get_current_date, generate_short_id
-from vibe_trader_agent.optimization.params_validation import validate_optimizer_params
 from vibe_trader_agent.optimization.results_formatting import format_results_for_llm
 from vibe_trader_agent.optimization.state_parser import parse_state_to_optimizer_params
 from vibe_trader_agent.prompts import (
-    ASSET_FINDER_SYSTEM_PROMPT,
-    FINANCIAL_ADVISOR_SYSTEM_PROMPT,
-    PROFILE_BUILDER_SYSTEM_PROMPT,
-    VIEWS_ANALYST_SYSTEM_PROMPT,
+    ASSET_RESEARCHER_SYSTEM_PROMPT,
+    MANDATE_STRATEGIST_SYSTEM_PROMPT,
+    PROFILER_SYSTEM_PROMPT,
+    PORTFOLIO_ANALYST_SYSTEM_PROMPT,
     REPORTER_SYSTEM_PROMPT,
 )
 from vibe_trader_agent.state import State
 from vibe_trader_agent.tools import (
-    asset_finder_tools,
-    financial_advisor_tools,
-    profile_builder_tools,
-    views_analyst_tools,
+    researcher_tools,
+    strategist_tools,
+    profiler_tools,
+    analyst_tools,
 )
 from vibe_trader_agent.utils import concatenate_mandate_data, load_chat_model
 from vibe_trader_agent.gcs_client import upload_pdf
@@ -75,7 +74,7 @@ def get_google_credentials():
     return credentials
 
 
-async def profile_builder(state: State) -> Dict[str, Any]:
+async def profiler(state: State) -> Dict[str, Any]:
     """Engage with user to collect profile information and route appropriately.
     
     Args:
@@ -88,10 +87,10 @@ async def profile_builder(state: State) -> Dict[str, Any]:
 
     # Initialize the model with tools
     model = load_chat_model(configuration.model)
-    model_with_tools = model.bind_tools(profile_builder_tools)
+    model_with_tools = model.bind_tools(profiler_tools)
 
     # Format the system prompt with current time
-    system_message = PROFILE_BUILDER_SYSTEM_PROMPT.format(
+    system_message = PROFILER_SYSTEM_PROMPT.format(
         system_time=datetime.now(tz=UTC).isoformat()
     )
 
@@ -113,21 +112,21 @@ async def profile_builder(state: State) -> Dict[str, Any]:
             # Note: don't add tool-call message
             profile_data = tool_call["args"]
             result.update(profile_data)
-            result["next"] = "financial_advisor"
+            result["next"] = "mandate_strategist"
             return result
         elif tool_call["name"] == "search":
             # Search tool called - continue to tools node
             result["messages"] = [response]
-            result["next"] = "tools_builder"
+            result["next"] = "profiler_tools"
             return result
     
     # No tools called - continue conversation with user
     result["messages"] = [response]
-    result["next"] = "human_input_builder"
+    result["next"] = "profiler_human"
     return result
 
 
-async def financial_advisor(state: State) -> Dict[str, Any]:
+async def mandate_strategist(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
 
     This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
@@ -144,10 +143,10 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
     configuration = Configuration.from_context()
 
     # Initialize the model with tool binding
-    model = load_chat_model(configuration.model).bind_tools(financial_advisor_tools)
+    model = load_chat_model(configuration.model).bind_tools(strategist_tools)
 
     # Format the system prompt with current time
-    system_message = FINANCIAL_ADVISOR_SYSTEM_PROMPT.format(
+    system_message = MANDATE_STRATEGIST_SYSTEM_PROMPT.format(
         system_time=datetime.now(tz=UTC).isoformat()
     )
 
@@ -182,21 +181,21 @@ async def financial_advisor(state: State) -> Dict[str, Any]:
             # Note: don't add tool-call message
             mandate_data = tool_call["args"]
             result.update(mandate_data)
-            result["next"] = "asset_finder"
+            result["next"] = "asset_researcher"
             return result
         elif tool_call["name"] == "search":
             # Search tool called - continue to tools node
             result["messages"] = [response]
-            result["next"] = "tools_advisor"
+            result["next"] = "strategist_tools"
             return result
 
     # No tools called - continue conversation with user
     result["messages"] = [response]
-    result["next"] = "human_input_advisor"
+    result["next"] = "strategist_human"
     return result
 
 
-async def asset_finder(state: State) -> Dict[str, Any]:
+async def asset_researcher(state: State) -> Dict[str, Any]:
     """Call the LLM with the financial advisor prompt to extract investment preferences.
 
     This function prepares the prompt using the CONSTRAINTS_EXTRACTOR_SYSTEM_PROMPT,
@@ -212,8 +211,8 @@ async def asset_finder(state: State) -> Dict[str, Any]:
     """
     configuration = Configuration.from_context()
 
-    model = load_chat_model(configuration.model).bind_tools(asset_finder_tools)
-    system_message = ASSET_FINDER_SYSTEM_PROMPT.format(
+    model = load_chat_model(configuration.model).bind_tools(researcher_tools)
+    system_message = ASSET_RESEARCHER_SYSTEM_PROMPT.format(
         system_time=datetime.now(tz=UTC).isoformat()
         )
 
@@ -245,26 +244,26 @@ async def asset_finder(state: State) -> Dict[str, Any]:
             tickers["tickers"] = [t for t in tickers["tickers"] if validate_ticker_exists(t)]
             
             result.update(tickers)
-            result["next"] = "views_analyst"
+            result["next"] = "portfolio_analyst"
             return result
         elif tool_call["name"] == "search":
             # Search tool called - continue to tools node
             result["messages"] = [response]
-            result["next"] = "tools_finder"
+            result["next"] = "researcher_tools"
             return result
     
     # No tools called - continue conversation with user
     result["messages"] = [response]
-    result["next"] = "human_input_finder"
+    result["next"] = "researcher_human"
     return result
 
 
-async def views_analyst(state: State) -> Dict[str, Any]:
+async def portfolio_analyst(state: State) -> Dict[str, Any]:
     """Call the LLM with the views analyst prompt to generate data structures for Black-Litterman model.
 
     This function first checks if the last message is a ToolMessage from the 'extract_bl_views' tool.
     If so, it returns a success message without calling the LLM.
-    Otherwise, it prepares the prompt using the VIEWS_ANALYST_SYSTEM_PROMPT,
+    Otherwise, it prepares the prompt using the PORTFOLIO_ANALYST_SYSTEM_PROMPT,
     initializes the reasoning model.
 
     Args:
@@ -291,7 +290,7 @@ async def views_analyst(state: State) -> Dict[str, Any]:
             return {
                 "messages": [AIMessage(content="Black-Litterman inputs generated and extracted successfully.")],
                 "bl_views": tool_output["bl_views"],
-                "next": "optimizer"
+                "next": "portfolio_optimizer"
             }
     
     # Create reasoning model
@@ -301,10 +300,10 @@ async def views_analyst(state: State) -> Dict[str, Any]:
     )
 
     # Initialize the model with tool binding
-    model = reason_model.bind_tools(views_analyst_tools)
+    model = reason_model.bind_tools(analyst_tools)
 
     # Format the system prompt with current time
-    system_message = VIEWS_ANALYST_SYSTEM_PROMPT.format(
+    system_message = PORTFOLIO_ANALYST_SYSTEM_PROMPT.format(
         system_time=get_current_date()
     )
 
@@ -356,7 +355,7 @@ async def human_input_node(state: State) -> Dict[str, Any]:
     return {"user_input": user_response}
 
 
-async def optimizer(state: State) -> Dict[str, Any]:
+async def portfolio_optimizer(state: State) -> Dict[str, Any]:
     """Node to perform portfolio optimization via Cloud Run service.
     
     Args:
@@ -365,10 +364,10 @@ async def optimizer(state: State) -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: LLM-friendly output of the optimization process.
     """
-    # Convert State to expected params by Optimizer
+    # Convert State to expected params by portfolio_optimizer
     params = parse_state_to_optimizer_params(
         asdict(state), 
-        scenarios=5,     # TODO: optimal value
+        scenarios=5,         # TODO: optimal value
         max_iterations=10,  # TODO: optimal value
         output_dir=None     # No File writing
     )
