@@ -5,6 +5,12 @@ A sophisticated AI agent built with LangGraph that combines financial advisory c
 **Vibe-Trader** employs a multi-agent system with specialized AI agents that work together to deliver personalized investment recommendations:
 ![Architecture Diagram](static/multi-agent-architecture.png)
 
+## 🎥 Walkthrough Video
+
+📺 **[Watch the Vibe Trader Agent Walkthrough](https://drive.google.com/file/d/1Hh8aWtkRbw2lZFXaqOQuhcEP5U65WahW/view?usp=sharing)**
+
+Get a comprehensive overview of how the Vibe Trader Agent works, including demonstrations of the multi-agent system, user profiling, and portfolio optimization features.
+
 ## Graph Nodes
 
 | Node | Role | Description |
